@@ -1,5 +1,5 @@
 <?php
-// Progel_core/guardar.php
+// Progel_cores/guardar.php
 include 'config/db.php'; 
 
 function show_sweet_alert($icon, $title, $text, $redirect_url) {
@@ -39,6 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $query = "INSERT INTO bitacora_lecturas (equipo_id, parametro_id, valor_capturado, observaciones, numero_nomina, lote) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = mysqli_prepare($conn, $query);
     
+    // Atrapamos el error si falta una columna en la tabla
+    if (!$stmt) {
+        die("<div style='padding: 20px; background: #fee2e2; color: #b91c1c; font-family: sans-serif; border-left: 5px solid #b91c1c;'>
+                <h3>Error de Estructura en Base de Datos</h3>
+                <p><strong>Detalle:</strong> " . mysqli_error($conn) . "</p>
+             </div>");
+    }
+
     $guardados_count = 0;
 
     foreach ($_POST as $key => $valor) {
@@ -56,7 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
 
             mysqli_stmt_bind_param($stmt, "iissss", $true_equipo_id, $parametro_id, $valor, $observacion, $numero_nomina, $lote);
-            mysqli_stmt_execute($stmt);
+
+            // Atrapamos el error si los datos no coinciden
+            if (!mysqli_stmt_execute($stmt)) {
+                die("<div style='padding: 20px; background: #fff3cd; color: #856404; font-family: sans-serif; border-left: 5px solid #ffeeba;'>
+                        <h3>Error al Insertar el Dato</h3>
+                        <p><strong>Parámetro ID:</strong> $parametro_id</p>
+                        <p><strong>Detalle:</strong> " . mysqli_stmt_error($stmt) . "</p>
+                     </div>");
+            }
+
             $guardados_count++;
         }
     }

@@ -1,5 +1,5 @@
 <?php
-// Progel_core/captura.php
+// Progel_cores/captura.php
 session_start();
 
 // SI NO HA INICIADO SESIÓN, NO LO DEJAMOS PASAR

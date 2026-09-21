@@ -1,5 +1,5 @@
 <?php
-// Progel_core/logout.php
+// Progel_cores/logout.php
 session_start();
 session_destroy();
 header("Location: login.php");

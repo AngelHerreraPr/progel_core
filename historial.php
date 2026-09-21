@@ -1,5 +1,5 @@
 <?php
-// Progel_core/historial.php
+// Progel_cores/historial.php
 include 'config/db.php';
 
 // Recibimos qué equipo queremos revisar

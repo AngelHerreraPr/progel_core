@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="/Progel_core/assets/style.css" rel="stylesheet">
+    <link href="/Progel_cores/assets/style.css" rel="stylesheet">
     <title>PROGEL CORE</title>
     <style>
         .navbar-progel { background-color: #0b3d91; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
@@ -24,8 +24,8 @@
 <body class="bg-light">
 <nav class="navbar navbar-dark navbar-progel shadow-sm py-2">
     <div class="container-fluid px-3 px-md-4">
-        <a class="navbar-brand d-flex align-items-center" href="/Progel_core/index.php">
-            <img src="/Progel_core/img/blanco.png" alt="Logo" class="brand-logo">
+        <a class="navbar-brand d-flex align-items-center" href="/Progel_cores/index.php">
+            <img src="/Progel_cores/img/blanco.png" alt="Logo" class="brand-logo">
             <div class="d-flex flex-column justify-content-center"><span class="h5 mb-0 fw-bold" style="letter-spacing: 1px;">PROGEL <span class="fw-normal">CORE</span></span></div>
         </a>
         <div class="d-flex align-items-center"><span class="user-pill">Operador</span></div>

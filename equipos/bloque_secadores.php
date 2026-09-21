@@ -1,5 +1,5 @@
 <?php
-// Progel_core/equipos/bloque_secadores.php
+// Progel_cores/equipos/bloque_secadores.php
 
 // FUNCIÓN: Búsqueda Dual (Local y Reporte Maestro)
 function obtenerRegistroSecador($conn, $param_id, $nombre_param, $equipo_id) {

@@ -1,5 +1,5 @@
 <?php
-// Progel_core/equipos/bloque_matriz_votator.php
+// Progel_cores/equipos/bloque_matriz_votator.php
 // VISTA DEFINITIVA Y CORREGIDA PARA VOTATOR (IDs 81, 82, 83)
 
 function obtenerRegistroExistenteVotator($conn, $param_id) {

@@ -1,5 +1,5 @@
 <?php
-// Progel_core/login.php
+// Progel_cores/login.php
 session_start();
 
 // Si ya inició sesión, lo mandamos directo al mapa

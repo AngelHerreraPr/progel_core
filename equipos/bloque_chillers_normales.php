@@ -1,5 +1,5 @@
 <?php
-// Progel_core/equipos/bloque_chillers_normales.php
+// Progel_cores/equipos/bloque_chillers_normales.php
 
 function obtenerRegistroChillerInteligente($conn, $param_id, $frecuencia) {
     $intervalo = ($frecuencia == 'SEMANAL') ? '7 DAY' : '12 HOUR';

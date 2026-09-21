@@ -102,29 +102,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             for ($i = 1; $i <= 4; $i++) {
                 $estado_fo_secado = isset($_POST["estado_fo_$i"]) ? 1 : 0;
 
-                // MAGIA: El truco del -1 para que la BD vieja acepte el F.O.
+                // MAGIA: El truco del -1 o null para que la BD vieja acepte F.O. y LAVADO
                 $flujo_secado   = ($estado_fo_secado) ? null : ((isset($_POST["flujo_secado_$i"]) && $_POST["flujo_secado_$i"] !== '') ? $_POST["flujo_secado_$i"] : null);
-                if ($flujo_secado === 'F.O.') $flujo_secado = -1;
+                if ($flujo_secado === 'F.O.' || $flujo_secado === 'LAVADO') $flujo_secado = -1;
 
                 $hz_secado      = ($estado_fo_secado) ? null : ((isset($_POST["hz_secado_$i"]) && $_POST["hz_secado_$i"] !== '') ? $_POST["hz_secado_$i"] : null);
-                if ($hz_secado === 'F.O.') $hz_secado = -1;
+                if ($hz_secado === 'F.O.' || $hz_secado === 'LAVADO') $hz_secado = -1;
 
                 $rc9            = ($estado_fo_secado) ? null : ((isset($_POST["rc9_$i"]) && $_POST["rc9_$i"] !== '') ? $_POST["rc9_$i"] : null);
-                if ($rc9 === 'F.O.') $rc9 = -1;
+                if ($rc9 === 'F.O.' || $rc9 === 'LAVADO') $rc9 = -1;
 
                 $hum_penultima  = ($estado_fo_secado) ? null : ((isset($_POST["hum_penultima_$i"]) && $_POST["hum_penultima_$i"] !== '') ? $_POST["hum_penultima_$i"] : null);
-                if ($hum_penultima === 'F.O.') $hum_penultima = -1;
+                if ($hum_penultima === 'F.O.' || $hum_penultima === 'LAVADO') $hum_penultima = -1;
 
                 $hum_ultima     = ($estado_fo_secado) ? null : ((isset($_POST["hum_ultima_$i"]) && $_POST["hum_ultima_$i"] !== '') ? $_POST["hum_ultima_$i"] : null);
-                if ($hum_ultima === 'F.O.') $hum_ultima = -1;
+                if ($hum_ultima === 'F.O.' || $hum_ultima === 'LAVADO') $hum_ultima = -1;
 
                 $altura_galleta = ($estado_fo_secado) ? null : ((isset($_POST["altura_galleta_$i"]) && $_POST["altura_galleta_$i"] !== '') ? $_POST["altura_galleta_$i"] : null);
-                if ($altura_galleta === 'F.O.') $altura_galleta = -1;
+                if ($altura_galleta === 'F.O.' || $altura_galleta === 'LAVADO') $altura_galleta = -1;
 
                 $hum_rel_cam5   = ($estado_fo_secado) ? null : ((isset($_POST["hum_relativa_cam5_$i"]) && $_POST["hum_relativa_cam5_$i"] !== '') ? $_POST["hum_relativa_cam5_$i"] : null);
-                if ($hum_rel_cam5 === 'F.O.') $hum_rel_cam5 = -1;
+                if ($hum_rel_cam5 === 'F.O.' || $hum_rel_cam5 === 'LAVADO') $hum_rel_cam5 = -1;
 
-                $textura_secado = ($estado_fo_secado) ? 'F.O.' : ((isset($_POST["textura_secado_$i"]) && $_POST["textura_secado_$i"] !== '') ? $_POST["textura_secado_$i"] : null);
+                $post_textura   = $_POST["textura_secado_$i"] ?? '';
+                if ($post_textura === 'LAVADO') {
+                    $textura_secado = 'LAVADO';
+                } elseif ($post_textura === 'F.O.' || $estado_fo_secado) {
+                    $textura_secado = 'F.O.';
+                } else {
+                    $textura_secado = ($post_textura !== '') ? $post_textura : null;
+                }
 
                 // Guardamos para cada uno de los 4 secadores
                 mysqli_stmt_bind_param($stmt2, "ssiidddddddssi", 

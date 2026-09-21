@@ -1,5 +1,5 @@
 <?php 
-// Progel_core/equipos/bloque_lista_normal.php
+// Progel_cores/equipos/bloque_lista_normal.php
 
 // Buscamos dinámicamente las frecuencias que tenga este equipo en la BD
 $stmt_f = mysqli_prepare($conn, "SELECT DISTINCT frecuencia FROM parametros WHERE equipo_id = ? ORDER BY FIELD(frecuencia, 'DIARIO', 'SEMANAL', 'MENSUAL')");
@@ -49,7 +49,7 @@ if (empty($frecuencias_tab)) $frecuencias_tab = ['DIARIO'];
 <div class="tab-content">
     <?php foreach($frecuencias_tab as $index => $ft): ?>
         <div class="tab-pane fade <?= $index == 0 ? 'show active' : '' ?>" id="tab-<?= str_replace(' ', '_', $ft) ?>">
-            <form action="/Progel_core/guardar.php" method="POST" class="formCaptura">
+            <form action="/Progel_cores/guardar.php" method="POST" class="formCaptura">
                 <input type="hidden" name="equipo_id" value="<?= $equipo_id ?>">
                 <input type="hidden" name="frecuencia_tab" value="<?= htmlspecialchars($ft) ?>">
                 <input type="hidden" name="numero_nomina" value="<?= htmlspecialchars($_SESSION['nomina']) ?>">

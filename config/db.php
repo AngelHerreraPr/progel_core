@@ -9,11 +9,11 @@ $pass = "";
 
 
 
-$db_core = "progel_core";
+$db_core = "progel_cores";
 $conn = mysqli_connect($host, $user, $pass, $db_core);
 
 if (!$conn) {
-    die("Error de conexión a progel_core: " . mysqli_connect_error());
+    die("Error de conexión a progel_cores: " . mysqli_connect_error());
 }
 
 $db_procesos = "progel_procesos";

@@ -1,5 +1,5 @@
 <?php
-// Progel_core/equipos/bloque_concentradores_todos.php
+// Progel_cores/equipos/bloque_concentradores_todos.php
 
 function obtenerRegistroExistente2Horas($conn, $param_id) {
     $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 

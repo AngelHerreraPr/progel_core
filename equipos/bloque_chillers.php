@@ -1,5 +1,5 @@
 <?php
-// Progel_core/equipos/bloque_chillers.php
+// Progel_cores/equipos/bloque_chillers.php
 // MÓDULO EXCLUSIVO PARA CHILLERS VOTATOR (IDs 81 y 82) CON DOBLE DELTA AUTOMÁTICO
 
 if (!function_exists('obtenerRegistroChillerVotatorID')) {

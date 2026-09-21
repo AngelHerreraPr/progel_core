@@ -1,5 +1,5 @@
 <?php
-// Progel_coree/equipos/bloque_captura.php
+// Progel_corese/equipos/bloque_captura.php
 // ROUTER INTELIGENTE DE PANTALLAS
 
 if (in_array($equipo_id, [81, 82])) {

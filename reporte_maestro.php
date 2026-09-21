@@ -126,95 +126,8 @@ $todas_las_horas = array_merge($horas_diurno, $horas_nocturno);
 include 'includes/header.php'; 
 ?>
 
-<style>
-    body { background-color: #f0f4f8; }
-    .page-shell { margin-top: 10px; }
-    .master-card { background: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; margin-bottom: 2rem; overflow: hidden; }
-    .panel-header { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); padding: 1.5rem; border-bottom: 1px solid #e2e8f0; }
-    .group-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; height: 100%; }
-    .section-title { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
-    
-    .input-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; }
-    .input-grid-compact { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
-    @media (max-width: 768px) {
-        .input-grid { gap: 0.5rem; }
-        .input-grid-compact { gap: 0.5rem; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
-    }
+<link rel="stylesheet" href="assets/css/reporte_maestro.css">
 
-    .input-label { font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 0.2rem; display: block; }
-    .form-control, .form-select { border-radius: 8px; border: 1px solid #cbd5e1; padding: 0.45rem 0.75rem; font-weight: 600; color: #1e293b; }
-    .form-control:focus, .form-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-    .input-group-text-fo { background-color: #ffffff; border-color: #cbd5e1; cursor: pointer; font-weight: 800; font-size: 0.75rem; color: #ef4444; transition: all 0.2s; }
-    
-    .table-secadores { border-radius: 10px; overflow: hidden; border-collapse: separate; border-spacing: 0; border: 1px solid #c3e6cb; background: white; width: 100%;}
-    .table-secadores thead th { background-color: #d1e7dd; color: #0f5132; border-bottom: 2px solid #badbcc !important; font-weight: 800; text-transform: uppercase; font-size: 0.75rem; padding: 12px 8px; text-align: center; vertical-align: middle;}
-    .table-secadores tbody td { padding: 6px; vertical-align: middle; border-color: #e9ecef; }
-    .table-secadores tbody tr:hover { background-color: #f8f9fa; }
-    .input-secador { border: 1px solid transparent; background-color: #f8f9fa; border-radius: 6px; text-align: center; font-weight: 600; color: #2c3e50; transition: all 0.2s; width: 100%; padding: 6px; font-size: 0.85rem;}
-    .input-secador:focus { border-color: #198754; background-color: #ffffff; box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25); outline: none;}
-    .select-secador { border: 1px solid transparent; background-color: #f8f9fa; border-radius: 6px; font-weight: 600; color: #2c3e50; font-size: 0.8rem; width: 100%; padding: 6px;}
-
-    @media (max-width: 991px) {
-        .table-secadores thead { display: none; }
-        .table-secadores, .table-secadores tbody, .table-secadores tr, .table-secadores td { display: block; width: 100%; }
-        
-        .table-secadores tr { 
-            margin-bottom: 0.75rem; 
-            border: 2px solid #a3cfbb; 
-            border-radius: 8px; 
-            padding: 4px; 
-            background-color: #ffffff; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
-        }
-        
-        .table-secadores td { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            text-align: right; 
-            border: none !important; 
-            border-bottom: 1px solid #e2e8f0 !important; 
-            padding: 4px 6px; 
-            min-height: 35px; 
-        }
-        
-        .table-secadores td:last-child { border-bottom: none !important; }
-        
-        .table-secadores td::before { 
-            content: attr(data-label); 
-            font-weight: 800; 
-            color: #0f5132; 
-            font-size: 0.75rem; 
-            text-align: left; 
-            flex-basis: 45%; 
-        }
-        
-        .input-secador, .select-secador { 
-            width: 55%; 
-            padding: 2px 8px; 
-            font-size: 0.9rem; 
-            height: 28px; 
-            margin: 0;
-        }
-        
-        .form-check-input { 
-            transform: scale(1.3); 
-            margin-right: 5px; 
-            margin-top: 0; 
-        }
-    }
-
-    .table-wrapper { border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.03); overflow-x: auto; background: #fff; width: 100vw; position: relative; left: calc(-50vw + 50%); padding-bottom: 10px;}
-    .table-sabana { width: 100%; min-width: 1500px; margin-bottom: 0; }
-    .table-sabana th { font-size: 0.65rem; text-transform: uppercase; font-weight: 800; padding: 10px 8px; vertical-align: middle; white-space: nowrap; }
-    .table-sabana td { font-size: 0.85rem; padding: 8px; vertical-align: middle; border-color: #f1f5f9; white-space: nowrap; }
-    .table-sabana tbody tr:hover td { background-color: #f8fafc; }
-    .hora-cell { position: sticky; left: 0; z-index: 2; background-color: #eff6ff !important; font-weight: 800; color: #1e40af; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
-    .table-sabana thead th:first-child { position: sticky; left: 0; z-index: 3; }
-    .semaforo-v-sabana { background: #dcfce7 !important; color: #166534 !important; font-weight: 800; }
-    .semaforo-a-sabana { background: #fef9c3 !important; color: #854d0e !important; font-weight: 800; }
-    .semaforo-r-sabana { background: #fee2e2 !important; color: #b91c1c !important; font-weight: 800; }
-</style>
 
 <div class="container-fluid px-4 page-shell">    
     
@@ -265,7 +178,20 @@ include 'includes/header.php';
                     <h5 class="fw-bold text-dark m-0"><i class="bi bi-ui-checks-grid text-primary me-2"></i>Captura de Parámetros</h5>
                     <small class="text-muted">Selecciona la hora para cargar o registrar datos.</small>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <!-- ACCIONES MAESTRAS RÁPIDAS (F.O. / LAVADO / LIMPIAR) -->
+                    <div class="btn-group shadow-sm" role="group" aria-label="Acciones rápidas globales">
+                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-rapido-accion d-flex align-items-center gap-1" onclick="marcarTodo('FO')" title="Marcar toda la maquinaria en Fuera de Operación">
+                            <i class="bi bi-x-circle-fill text-danger"></i> <span>F.O.</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-info btn-sm fw-bold text-dark btn-rapido-accion d-flex align-items-center gap-1" onclick="marcarTodo('LAVADO')" title="Marcar toda la maquinaria en Lavado (CIP)">
+                            <i class="bi bi-droplet-fill text-info"></i> <span>LAVADO</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm btn-rapido-accion d-flex align-items-center gap-1" onclick="marcarTodo('LIMPIAR')" title="Restablecer todos los campos a blanco/numérico">
+                            <i class="bi bi-arrow-counterclockwise"></i> <span>Limpiar</span>
+                        </button>
+                    </div>
+
                     <select name="hora" id="cap_hora" class="form-select form-select-lg fw-bold border-primary text-primary bg-primary bg-opacity-10 shadow-sm" style="min-width: 150px;" onchange="gestionarEstadoFormulario(this.value)" required>
                         <option value="">-- Hora --</option>
                         <?php foreach ($todas_las_horas as $h): ?>
@@ -315,7 +241,7 @@ include 'includes/header.php';
                             <label class="input-label"><?= $c_label ?></label>
                             <div class="input-group input-group-sm shadow-sm rounded-2">
                                 <input type="number" step="0.01" id="input_<?= $c_name ?>" name="<?= $c_name ?>" class="form-control border-end-0" oninput="sumarFlujoVotators()" required>
-                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_<?= $c_name ?>')">F.O.</button>
+                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_<?= $c_name ?>')" title="Clic: F.O. / LAVADO / Normal">F.O.</button>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -324,7 +250,7 @@ include 'includes/header.php';
                             <label class="input-label text-dark">Sólidos Conc</label>
                             <div class="input-group input-group-sm shadow-sm rounded-2">
                                 <input type="number" step="0.01" id="input_solidos_brix" name="solidos_brix" class="form-control border-dark border-end-0" oninput="calcularTeoricos()" required>
-                                <button type="button" class="input-group-text input-group-text-fo border-dark" onclick="ponerFO('input_solidos_brix')">F.O.</button>
+                                <button type="button" class="input-group-text input-group-text-fo border-dark" onclick="ponerFO('input_solidos_brix')" title="Clic: F.O. / LAVADO / Normal">F.O.</button>
                             </div>
                         </div>
 
@@ -346,7 +272,7 @@ include 'includes/header.php';
                             <label class="input-label">Hum T<?= $i ?></label>
                             <div class="input-group input-group-sm shadow-sm rounded-2">
                                 <input type="number" step="0.01" name="hum_t<?= $i ?>" id="input_hum_t<?= $i ?>" class="form-control border-end-0" oninput="copiarHumedadUltima()">
-                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_hum_t<?= $i ?>')">F.O.</button>
+                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_hum_t<?= $i ?>')" title="Clic: F.O. / LAVADO / Normal">F.O.</button>
                             </div>
                         </div>
                         <?php endfor; ?>
@@ -357,7 +283,7 @@ include 'includes/header.php';
                             <label class="input-label">Vel T<?= $i ?></label>
                             <div class="input-group input-group-sm shadow-sm rounded-2">
                                 <input type="number" step="0.01" name="vel_t<?= $i ?>" id="input_vel_t<?= $i ?>" class="form-control border-end-0" oninput="copiarVelocidadHZ()">
-                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_vel_t<?= $i ?>')">F.O.</button>
+                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_vel_t<?= $i ?>')" title="Clic: F.O. / LAVADO / Normal">F.O.</button>
                             </div>
                         </div>
                         <?php endfor; ?>
@@ -415,6 +341,8 @@ include 'includes/header.php';
                                             <option value="Firme">Firme</option>
                                             <option value="Plástica">Plástica</option>
                                             <option value="Húmeda">Húmeda</option>
+                                            <option value="F.O.">F.O.</option>
+                                            <option value="LAVADO">LAVADO</option>
                                         </select>
                                     </td>
                                 </tr>
@@ -582,6 +510,13 @@ include 'includes/header.php';
                         return (isset($dh[$key]) && trim($dh[$key]) !== '') ? htmlspecialchars($dh[$key]) : '-';
                     };
 
+                    $color_estado = function($v) {
+                        $val = strtoupper(trim((string)$v));
+                        if ($val === 'F.O.') return 'semaforo-r-sabana';
+                        if ($val === 'LAVADO') return 'semaforo-azul-sabana';
+                        return '';
+                    };
+
                     $eficiencia_calculada = '-';
                     $kg_reales_val = $pv('kg_reales');
                     $kg_teoricos_guardados = $pv('kg_teoricos'); 
@@ -622,29 +557,29 @@ include 'includes/header.php';
                     <td class="text-muted bg-light">6k-7k</td> 
                     <td class="fw-bold border-end border-2 bg-light"><?= $pv('caldo_concentrado') ?></td>
                     
-                    <td class="fw-bold <?= (strtoupper($pv('hum_t1')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('hum_t1') ?></td>
-                    <td class="fw-bold <?= (strtoupper($pv('hum_t2')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('hum_t2') ?></td>
-                    <td class="fw-bold <?= (strtoupper($pv('hum_t3')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('hum_t3') ?></td>
-                    <td class="fw-bold border-end border-2 <?= (strtoupper($pv('hum_t4')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('hum_t4') ?></td>
+                    <td class="fw-bold <?= $color_estado($pv('hum_t1')) ?>"><?= $pv('hum_t1') ?></td>
+                    <td class="fw-bold <?= $color_estado($pv('hum_t2')) ?>"><?= $pv('hum_t2') ?></td>
+                    <td class="fw-bold <?= $color_estado($pv('hum_t3')) ?>"><?= $pv('hum_t3') ?></td>
+                    <td class="fw-bold border-end border-2 <?= $color_estado($pv('hum_t4')) ?>"><?= $pv('hum_t4') ?></td>
                     
-                    <td class="fw-bold <?= (strtoupper($pv('vel_t1')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('vel_t1') ?></td>
-                    <td class="fw-bold <?= (strtoupper($pv('vel_t2')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('vel_t2') ?></td>
-                    <td class="fw-bold <?= (strtoupper($pv('vel_t3')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('vel_t3') ?></td>
-                    <td class="fw-bold border-end border-2 <?= (strtoupper($pv('vel_t4')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('vel_t4') ?></td>
+                    <td class="fw-bold <?= $color_estado($pv('vel_t1')) ?>"><?= $pv('vel_t1') ?></td>
+                    <td class="fw-bold <?= $color_estado($pv('vel_t2')) ?>"><?= $pv('vel_t2') ?></td>
+                    <td class="fw-bold <?= $color_estado($pv('vel_t3')) ?>"><?= $pv('vel_t3') ?></td>
+                    <td class="fw-bold border-end border-2 <?= $color_estado($pv('vel_t4')) ?>"><?= $pv('vel_t4') ?></td>
                     
                     <td class="text-muted bg-light">4</td> 
                     <td class="fw-bold bg-light"><?= $pv('votators_activos') ?></td>
                     <td class="text-muted bg-light">150</td>
-                    <td class="fw-bold bg-light <?= (strtoupper($pv('flujo_v1')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('flujo_v1') ?></td> 
-                    <td class="fw-bold bg-light <?= (strtoupper($pv('flujo_v2')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('flujo_v2') ?></td> 
-                    <td class="fw-bold bg-light <?= (strtoupper($pv('flujo_v3')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('flujo_v3') ?></td> 
-                    <td class="fw-bold bg-light <?= (strtoupper($pv('flujo_v4')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('flujo_v4') ?></td> 
-                    <td class="fw-bold bg-light <?= (strtoupper($pv('flujo_v5')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('flujo_v5') ?></td> 
-                    <td class="fw-bold bg-light <?= (strtoupper($pv('flujo_v6')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('flujo_v6') ?></td> 
+                    <td class="fw-bold bg-light <?= $color_estado($pv('flujo_v1')) ?>"><?= $pv('flujo_v1') ?></td> 
+                    <td class="fw-bold bg-light <?= $color_estado($pv('flujo_v2')) ?>"><?= $pv('flujo_v2') ?></td> 
+                    <td class="fw-bold bg-light <?= $color_estado($pv('flujo_v3')) ?>"><?= $pv('flujo_v3') ?></td> 
+                    <td class="fw-bold bg-light <?= $color_estado($pv('flujo_v4')) ?>"><?= $pv('flujo_v4') ?></td> 
+                    <td class="fw-bold bg-light <?= $color_estado($pv('flujo_v5')) ?>"><?= $pv('flujo_v5') ?></td> 
+                    <td class="fw-bold bg-light <?= $color_estado($pv('flujo_v6')) ?>"><?= $pv('flujo_v6') ?></td> 
                     <td class="fw-bold border-end border-2 text-primary bg-light"><?= ($flujo_total_votators > 0) ? number_format($flujo_total_votators, 2) : '-' ?></td>
                     
                     <td class="text-muted bg-light">19</td> 
-                    <td class="fw-bold text-dark bg-light <?= (strtoupper($pv('solidos_brix')) === 'F.O.') ? 'semaforo-r-sabana' : '' ?>"><?= $pv('solidos_brix') ?></td>
+                    <td class="fw-bold text-dark bg-light <?= $color_estado($pv('solidos_brix')) ?>"><?= $pv('solidos_brix') ?></td>
                     <td class="text-muted">856</td>
                     <td class="fw-bold"><?= $kg_teoricos_guardados ?></td> 
                     <td class="fw-bold text-success"><?= $pv('kg_reales') ?></td> 
@@ -682,8 +617,9 @@ include 'includes/header.php';
         if (flujoTotalInput && solidosBrixInput && teoricosInput) {
             let flujoTotal = parseFloat(flujoTotalInput.value);
             let solidosBrix = parseFloat(solidosBrixInput.value);
+            let valBrixStr = (solidosBrixInput.value || '').trim().toUpperCase();
 
-            if (!isNaN(flujoTotal) && !isNaN(solidosBrix) && solidosBrixInput.value !== 'F.O.') {
+            if (!isNaN(flujoTotal) && !isNaN(solidosBrix) && valBrixStr !== 'F.O.' && valBrixStr !== 'LAVADO') {
                 let produccionTeorica = flujoTotal * (solidosBrix / 100) * 60 * 0.85;
                 teoricosInput.value = produccionTeorica.toFixed(2);
             } else {
@@ -699,10 +635,10 @@ include 'includes/header.php';
     function sumarFlujoVotators() {
         const getRaw = (id) => {
             let el = document.getElementById(id);
-            return el ? el.value : '';
+            return el ? (el.value || '').trim().toUpperCase() : '';
         };
         const getNum = (val) => {
-            return (val === 'F.O.' || val === '') ? 0 : (parseFloat(val) || 0);
+            return (val === 'F.O.' || val === 'LAVADO' || val === '') ? 0 : (parseFloat(val) || 0);
         };
 
         let raw1 = getRaw('input_flujo_v1'); let v1 = getNum(raw1);
@@ -721,24 +657,26 @@ include 'includes/header.php';
         let s3 = document.getElementById('flujo_secado_3');
         let s4 = document.getElementById('flujo_secado_4');
 
+        const resolverFlujoSecador = (rA, rB, sumVal) => {
+            if (rA === 'F.O.' || (rB && rB === 'F.O.')) return 'F.O.';
+            if (rA === 'LAVADO' || (rB && rB === 'LAVADO')) return 'LAVADO';
+            return sumVal > 0 ? sumVal.toFixed(2) : '';
+        };
+
         if(s1 && (!document.getElementById('estado_fo_1') || !document.getElementById('estado_fo_1').checked)) { 
-            if (raw1 === 'F.O.' || raw2 === 'F.O.') s1.value = 'F.O.';
-            else s1.value = (v1 + v2) > 0 ? (v1 + v2).toFixed(2) : ''; 
+            s1.value = resolverFlujoSecador(raw1, raw2, v1 + v2);
             aplicarColorTiempoReal(s1); 
         }
         if(s2 && (!document.getElementById('estado_fo_2') || !document.getElementById('estado_fo_2').checked)) { 
-            if (raw3 === 'F.O.' || raw4 === 'F.O.') s2.value = 'F.O.';
-            else s2.value = (v3 + v4) > 0 ? (v3 + v4).toFixed(2) : ''; 
+            s2.value = resolverFlujoSecador(raw3, raw4, v3 + v4);
             aplicarColorTiempoReal(s2); 
         }
         if(s3 && (!document.getElementById('estado_fo_3') || !document.getElementById('estado_fo_3').checked)) { 
-            if (raw5 === 'F.O.') s3.value = 'F.O.';
-            else s3.value = v5 > 0 ? v5.toFixed(2) : ''; 
+            s3.value = resolverFlujoSecador(raw5, null, v5);
             aplicarColorTiempoReal(s3); 
         }
         if(s4 && (!document.getElementById('estado_fo_4') || !document.getElementById('estado_fo_4').checked)) { 
-            if (raw6 === 'F.O.') s4.value = 'F.O.';
-            else s4.value = v6 > 0 ? v6.toFixed(2) : ''; 
+            s4.value = resolverFlujoSecador(raw6, null, v6);
             aplicarColorTiempoReal(s4); 
         }
 
@@ -754,8 +692,9 @@ include 'includes/header.php';
             let vel = document.getElementById('input_vel_t' + i);
             
             if(hz && vel && (!document.getElementById('estado_fo_' + i) || !document.getElementById('estado_fo_' + i).checked)) {
-                if (vel.value === 'F.O.' && hz.tagName === 'INPUT' && hz.type === 'number') {
-                    hz.type = 'text'; // Aseguramos que pueda recibir F.O.
+                let vVal = (vel.value || '').trim().toUpperCase();
+                if ((vVal === 'F.O.' || vVal === 'LAVADO') && hz.tagName === 'INPUT' && hz.type === 'number') {
+                    hz.type = 'text'; 
                 }
                 hz.value = vel.value; 
                 aplicarColorTiempoReal(hz);
@@ -772,7 +711,8 @@ include 'includes/header.php';
             let hum_tunel = document.getElementById('input_hum_t' + i);
             
             if(h_ultima && hum_tunel && (!document.getElementById('estado_fo_' + i) || !document.getElementById('estado_fo_' + i).checked)) {
-                if (hum_tunel.value === 'F.O.' && h_ultima.tagName === 'INPUT' && h_ultima.type === 'number') {
+                let hVal = (hum_tunel.value || '').trim().toUpperCase();
+                if ((hVal === 'F.O.' || hVal === 'LAVADO') && h_ultima.tagName === 'INPUT' && h_ultima.type === 'number') {
                     h_ultima.type = 'text'; 
                 }
                 h_ultima.value = hum_tunel.value; 
@@ -802,37 +742,245 @@ include 'includes/header.php';
         }
     }
 
+    // =======================================================
+    // ACTUALIZAR BOTÓN LATERAL DERECHO [F.O. / LAV]
+    // =======================================================
+    function actualizarBotonLateral(idInput, estado) {
+        const campo = document.getElementById(idInput);
+        if (!campo) return;
+        const parent = campo.closest('.input-group');
+        if (!parent) return;
+        const btn = parent.querySelector('.input-group-text-fo');
+        if (!btn) return;
+
+        let est = (estado || '').trim().toUpperCase();
+
+        if (est === 'LAVADO') {
+            btn.textContent = 'LAV';
+            btn.classList.remove('btn-lateral-fo');
+            btn.classList.add('btn-lateral-lavado');
+            btn.title = 'Estado: LAVADO (Clic para Normal)';
+        } else if (est === 'F.O.') {
+            btn.textContent = 'F.O.';
+            btn.classList.remove('btn-lateral-lavado');
+            btn.classList.add('btn-lateral-fo');
+            btn.title = 'Estado: F.O. (Clic para LAVADO)';
+        } else {
+            btn.textContent = 'F.O.';
+            btn.classList.remove('btn-lateral-fo', 'btn-lateral-lavado');
+            btn.title = 'Clic para alternar F.O. / LAVADO';
+        }
+    }
+
+    // =======================================================
+    // ALTERNAR ESTADO INDIVIDUAL: Normal -> F.O. -> LAVADO -> Normal
+    // =======================================================
     function ponerFO(idInput) {
         const campo = document.getElementById(idInput);
-        if (campo) {
-            if (campo.value === "F.O.") {
-                if(campo.id !== 'cap_kg_teoricos') campo.type = 'number'; 
-                campo.value = "";
-                campo.style.backgroundColor = "";
-                campo.style.color = "";
-            } else {
-                if (campo.type === 'number') campo.type = 'text'; 
-                campo.value = "F.O.";
-                campo.style.backgroundColor = "#fee2e2";
-                campo.style.color = "#dc2626";
-            }
-            if(idInput.includes('flujo_v')) sumarFlujoVotators();
-            if(idInput.includes('vel_t')) copiarVelocidadHZ();
-            if(idInput.includes('hum_t')) copiarHumedadUltima();
-            if(idInput === 'input_solidos_brix') calcularTeoricos();
+        if (!campo) return;
+
+        let actual = (campo.value || '').trim().toUpperCase();
+
+        if (actual !== 'F.O.' && actual !== 'LAVADO') {
+            // Pasa a F.O.
+            if (campo.type === 'number') campo.type = 'text';
+            campo.value = 'F.O.';
+            campo.style.backgroundColor = '#fee2e2';
+            campo.style.color = '#dc2626';
+            campo.style.borderColor = '#fca5a5';
+            campo.style.fontWeight = 'bold';
+            campo.style.textAlign = 'center';
+            campo.style.fontSize = '0.80rem';
+            campo.style.letterSpacing = '';
+            actualizarBotonLateral(idInput, 'F.O.');
+        } else if (actual === 'F.O.') {
+            // Pasa a LAVADO
+            if (campo.type === 'number') campo.type = 'text';
+            campo.value = 'LAVADO';
+            campo.style.backgroundColor = '#cff4fc';
+            campo.style.color = '#055160';
+            campo.style.borderColor = '#9eeaf9';
+            campo.style.fontWeight = 'bold';
+            campo.style.textAlign = 'center';
+            campo.style.fontSize = '0.72rem';
+            campo.style.letterSpacing = '-0.3px';
+            actualizarBotonLateral(idInput, 'LAVADO');
+        } else {
+            // Pasa a Normal / Vacío
+            if (campo.id !== 'cap_kg_teoricos') campo.type = 'number';
+            campo.value = '';
+            campo.style.backgroundColor = '';
+            campo.style.color = '';
+            campo.style.borderColor = '';
+            campo.style.fontWeight = '';
+            campo.style.textAlign = '';
+            campo.style.fontSize = '';
+            campo.style.letterSpacing = '';
+            actualizarBotonLateral(idInput, '');
         }
+
+        if(idInput.includes('flujo_v')) sumarFlujoVotators();
+        if(idInput.includes('vel_t')) copiarVelocidadHZ();
+        if(idInput.includes('hum_t')) copiarHumedadUltima();
+        if(idInput === 'input_solidos_brix') calcularTeoricos();
+    }
+
+    // =======================================================
+    // ACCIÓN MAESTRA: MARCAR TODO (FO / LAVADO / LIMPIAR)
+    // =======================================================
+    function marcarTodo(modo) {
+        const horaSelect = document.getElementById('cap_hora');
+        if (!horaSelect || !horaSelect.value) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Selecciona una hora',
+                text: 'Primero selecciona la hora en la que deseas registrar los datos.',
+                timer: 2500,
+                showConfirmButton: false
+            });
+            if (horaSelect) horaSelect.focus();
+            return;
+        }
+
+        const camposVotators = ['input_flujo_v1', 'input_flujo_v2', 'input_flujo_v3', 'input_flujo_v4', 'input_flujo_v5', 'input_flujo_v6', 'input_solidos_brix'];
+        const camposTuneles = [
+            'input_hum_t1', 'input_hum_t2', 'input_hum_t3', 'input_hum_t4',
+            'input_vel_t1', 'input_vel_t2', 'input_vel_t3', 'input_vel_t4'
+        ];
+        const camposTodos = [...camposVotators, ...camposTuneles];
+
+        if (modo === 'FO') {
+            camposTodos.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.type = 'text';
+                    el.value = 'F.O.';
+                    el.style.backgroundColor = '#fee2e2';
+                    el.style.color = '#dc2626';
+                    el.style.borderColor = '#fca5a5';
+                    el.style.fontWeight = 'bold';
+                    el.style.textAlign = 'center';
+                    el.style.fontSize = '0.80rem';
+                    el.style.letterSpacing = '';
+                }
+                actualizarBotonLateral(id, 'F.O.');
+            });
+
+            // Votators activos en 0
+            const votActivos = document.querySelector('input[name="votators_activos"]');
+            if (votActivos) votActivos.value = '0';
+
+            // Secadores 1 al 4 a F.O.
+            for (let s = 1; s <= 4; s++) {
+                const chk = document.getElementById('estado_fo_' + s);
+                if (chk) chk.checked = true;
+                toggleFOSecador(s, 'F.O.');
+            }
+
+            // Observación de acciones
+            const acc = document.querySelector('input[name="acciones"]');
+            if (acc && acc.value.trim() === '') {
+                acc.value = 'LÍNEA EN FUERA DE OPERACIÓN (F.O.)';
+            }
+
+        } else if (modo === 'LAVADO') {
+            camposTodos.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.type = 'text';
+                    el.value = 'LAVADO';
+                    el.style.backgroundColor = '#cff4fc';
+                    el.style.color = '#055160';
+                    el.style.borderColor = '#9eeaf9';
+                    el.style.fontWeight = 'bold';
+                    el.style.textAlign = 'center';
+                    el.style.fontSize = '0.72rem';
+                    el.style.letterSpacing = '-0.3px';
+                }
+                actualizarBotonLateral(id, 'LAVADO');
+            });
+
+            // Votators activos en 0
+            const votActivos = document.querySelector('input[name="votators_activos"]');
+            if (votActivos) votActivos.value = '0';
+
+            // Secadores 1 al 4 a LAVADO
+            for (let s = 1; s <= 4; s++) {
+                const chk = document.getElementById('estado_fo_' + s);
+                if (chk) chk.checked = true;
+                toggleFOSecador(s, 'LAVADO');
+            }
+
+            // Observación de acciones
+            const acc = document.querySelector('input[name="acciones"]');
+            if (acc && acc.value.trim() === '') {
+                acc.value = 'LÍNEA EN LAVADO GENERAL (CIP)';
+            }
+
+        } else if (modo === 'LIMPIAR') {
+            camposTodos.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.type = 'number';
+                    el.value = '';
+                    el.style.backgroundColor = '';
+                    el.style.color = '';
+                    el.style.borderColor = '';
+                    el.style.fontWeight = '';
+                    el.style.textAlign = '';
+                    el.style.fontSize = '';
+                    el.style.letterSpacing = '';
+                }
+                actualizarBotonLateral(id, '');
+            });
+
+            const votActivos = document.querySelector('input[name="votators_activos"]');
+            if (votActivos) votActivos.value = '';
+
+            for (let s = 1; s <= 4; s++) {
+                const chk = document.getElementById('estado_fo_' + s);
+                if (chk) chk.checked = false;
+                toggleFOSecador(s, 'F.O.');
+            }
+
+            const acc = document.querySelector('input[name="acciones"]');
+            if (acc && (acc.value === 'LÍNEA EN FUERA DE OPERACIÓN (F.O.)' || acc.value === 'LÍNEA EN LAVADO GENERAL (CIP)')) {
+                acc.value = '';
+            }
+        }
+
+        // Recalcular todo
+        sumarFlujoVotators();
+        copiarVelocidadHZ();
+        copiarHumedadUltima();
+        calcularTeoricos();
     }
 
     function aplicarColorTiempoReal(elemento) {
         let valStr = elemento.value.trim();
         let esCampoAuto = elemento.id.includes('flujo_secado') || elemento.id.includes('hz_secado') || elemento.id.includes('hum_ultima');
         
-        // Magia para F.O. automático
+        // F.O. automático
         if (valStr === 'F.O.') {
             if(elemento.tagName === 'INPUT' && elemento.type === 'number') elemento.type = 'text';
             elemento.style.backgroundColor = '#f8d7da'; 
             elemento.style.color = '#dc3545';
             elemento.style.fontWeight = 'bold';
+            elemento.style.textAlign = 'center';
+            elemento.style.fontSize = '0.80rem';
+            elemento.style.letterSpacing = '';
+            return;
+        }
+
+        // LAVADO automático
+        if (valStr === 'LAVADO') {
+            if(elemento.tagName === 'INPUT' && elemento.type === 'number') elemento.type = 'text';
+            elemento.style.backgroundColor = '#cff4fc'; 
+            elemento.style.color = '#055160';
+            elemento.style.fontWeight = 'bold';
+            elemento.style.textAlign = 'center';
+            elemento.style.fontSize = '0.72rem';
+            elemento.style.letterSpacing = '-0.3px';
             return;
         }
 
@@ -926,6 +1074,8 @@ include 'includes/header.php';
             if (txt === 'firme' || txt === 'buena') bgColor = colorVerde;
             else if (txt === 'plástica' || txt === 'plastica') { bgColor = colorAmarillo; textColor = '#000'; }
             else if (txt === 'húmeda' || txt === 'humeda' || txt === 'quebradiza') bgColor = colorRojo;
+            else if (txt === 'lavado') { bgColor = '#cff4fc'; textColor = '#055160'; }
+            else if (txt === 'f.o.') { bgColor = '#f8d7da'; textColor = '#dc3545'; }
         }
 
         if (bgColor !== '') {
@@ -938,7 +1088,7 @@ include 'includes/header.php';
         }
     }
 
-    function toggleFOSecador(s) {
+    function toggleFOSecador(s, estado = 'F.O.') {
         const isFO = document.getElementById('estado_fo_' + s).checked;
         const campos = ['flujo_secado_', 'hz_secado_', 'rc9_', 'hum_penultima_', 'hum_ultima_', 'altura_galleta_', 'hum_relativa_cam5_', 'textura_secado_'];
         
@@ -947,10 +1097,23 @@ include 'includes/header.php';
             if (el) {
                 if (isFO) {
                     if(el.tagName === 'INPUT') el.type = 'text'; 
-                    el.value = 'F.O.'; 
+                    el.value = estado; 
                     
-                    el.style.backgroundColor = '#f8d7da'; 
-                    el.style.color = '#dc3545'; 
+                    if (estado === 'LAVADO') {
+                        el.style.backgroundColor = '#cff4fc'; 
+                        el.style.color = '#055160'; 
+                        el.style.borderColor = '#9eeaf9';
+                        el.style.textAlign = 'center';
+                        el.style.fontSize = '0.72rem';
+                        el.style.letterSpacing = '-0.3px';
+                    } else {
+                        el.style.backgroundColor = '#f8d7da'; 
+                        el.style.color = '#dc3545'; 
+                        el.style.borderColor = '#fca5a5';
+                        el.style.textAlign = 'center';
+                        el.style.fontSize = '0.80rem';
+                        el.style.letterSpacing = '';
+                    }
                     el.style.fontWeight = 'bold';
 
                     if (prefix !== 'flujo_secado_' && prefix !== 'hz_secado_' && prefix !== 'hum_ultima_') {
@@ -961,11 +1124,15 @@ include 'includes/header.php';
                         el.readOnly = false; 
                     }
                     if(el.tagName === 'INPUT' && prefix !== 'textura_secado_') el.type = 'number'; 
-                    if (el.value === 'F.O.') el.value = ''; 
+                    if (el.value === 'F.O.' || el.value === 'LAVADO') el.value = ''; 
                     
                     el.style.backgroundColor = '#f8f9fa';
                     el.style.color = '#2c3e50';
+                    el.style.borderColor = '';
                     el.style.fontWeight = '600';
+                    el.style.textAlign = 'center';
+                    el.style.fontSize = '';
+                    el.style.letterSpacing = '';
                     
                     if (prefix === 'flujo_secado_') sumarFlujoVotators();
                     else if (prefix === 'hz_secado_') copiarVelocidadHZ();
@@ -1033,6 +1200,13 @@ include 'includes/header.php';
 
             for(let s=1; s<=4; s++) toggleFOSecador(s);
 
+            const idsBotonesLaterales = [
+                'input_flujo_v1', 'input_flujo_v2', 'input_flujo_v3', 'input_flujo_v4', 'input_flujo_v5', 'input_flujo_v6', 'input_solidos_brix',
+                'input_hum_t1', 'input_hum_t2', 'input_hum_t3', 'input_hum_t4',
+                'input_vel_t1', 'input_vel_t2', 'input_vel_t3', 'input_vel_t4'
+            ];
+            idsBotonesLaterales.forEach(id => actualizarBotonLateral(id, ''));
+
             inputsSecadores.forEach(input => aplicarColorTiempoReal(input));
 
             if (datosDeLaHora) {
@@ -1049,6 +1223,22 @@ include 'includes/header.php';
                             if(el.tagName === 'INPUT' && el.id !== 'cap_kg_teoricos') el.type = 'text';
                             el.style.backgroundColor = '#fee2e2';
                             el.style.color = '#dc2626';
+                            el.style.borderColor = '#fca5a5';
+                            el.style.textAlign = 'center';
+                            el.style.fontSize = '0.80rem';
+                            el.style.letterSpacing = '';
+                            actualizarBotonLateral(el.id, 'F.O.');
+                        } else if (el.value === 'LAVADO') {
+                            if(el.tagName === 'INPUT' && el.id !== 'cap_kg_teoricos') el.type = 'text';
+                            el.style.backgroundColor = '#cff4fc';
+                            el.style.color = '#055160';
+                            el.style.borderColor = '#9eeaf9';
+                            el.style.textAlign = 'center';
+                            el.style.fontSize = '0.72rem';
+                            el.style.letterSpacing = '-0.3px';
+                            actualizarBotonLateral(el.id, 'LAVADO');
+                        } else if (el.id) {
+                            actualizarBotonLateral(el.id, '');
                         }
                     }
                 });
@@ -1060,7 +1250,8 @@ include 'includes/header.php';
                             
                             if(document.getElementById('estado_fo_'+s)) {
                                 document.getElementById('estado_fo_'+s).checked = (ds.estado_fo == 1);
-                                toggleFOSecador(s);
+                                let estSec = (ds.textura === 'LAVADO') ? 'LAVADO' : 'F.O.';
+                                toggleFOSecador(s, estSec);
                             }
                             
                             if (ds.estado_fo != 1) {
@@ -1117,6 +1308,34 @@ include 'includes/header.php';
             window.history.replaceState({}, document.title, window.location.pathname + `?fecha=${urlParams.get('fecha')}&turno=${urlParams.get('turno')}`);
         }
     });
+</script>
+
+<script>
+    // =======================================================
+    // REFRESCO INTELIGENTE CADA 5 MINUTOS (300,000 ms)
+    // =======================================================
+    let tiempoRefresco;                 
+
+    function iniciarTemporizador() {
+        // Limpiamos el temporizador anterior
+        clearTimeout(tiempoRefresco);
+        
+        // Configuramos el nuevo temporizador a 5 minutos (300,000 ms)
+        tiempoRefresco = setTimeout(function() {
+            // Recarga la página conservando los parámetros de la URL (fecha y turno)
+            window.location.reload();
+        }, 300000); 
+    }
+
+    // Iniciamos el contador en cuanto carga la página (o después de un guardado)
+    iniciarTemporizador();
+
+    // MAGIA: Si el operador está usando la página, reiniciamos los 5 minutos 
+    // para evitar que se le recargue la página mientras captura datos.
+    document.addEventListener('mousemove', iniciarTemporizador);
+    document.addEventListener('keypress', iniciarTemporizador);
+    document.addEventListener('click', iniciarTemporizador);
+    document.addEventListener('scroll', iniciarTemporizador);
 </script>
 
 <?php include 'includes/footer.php'; ?>

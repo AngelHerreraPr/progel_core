@@ -1,5 +1,5 @@
 <?php
-// Progel_core/equipos/bloque_compresores.php
+// Progel_cores/equipos/bloque_compresores.php
 
 function obtenerRegistroCompresorInteligente($conn, $param_id, $frecuencia) {
     $intervalo = ($frecuencia == 'SEMANAL') ? '7 DAY' : '12 HOUR';

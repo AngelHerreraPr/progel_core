@@ -1,5 +1,5 @@
 <?php
-// Progel_core/editor_rapido.php
+// Progel_cores/editor_rapido.php
 session_start();
 date_default_timezone_set('America/Mazatlan');
 include 'config/db.php';

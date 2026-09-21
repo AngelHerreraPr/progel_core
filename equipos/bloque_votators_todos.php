@@ -1,5 +1,5 @@
 <?php
-// Progel_coree/equipos/bloque_votators_todos.php
+// Progel_corese/equipos/bloque_votators_todos.php
 // MÓDULO EXCLUSIVO PARA VOTATORS (IDs 84 al 89) CON DELTA A PRUEBA DE BALAS
 
 if (!function_exists('obtenerRegistroExistenteVotatorTodos')) {
