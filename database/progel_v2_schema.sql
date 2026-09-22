@@ -4,10 +4,10 @@
 -- Juego de caracteres: utf8mb4 / Collate: utf8mb4_unicode_ci
 -- ====================================================================
 
-CREATE DATABASE IF NOT EXISTS `progel_v2` 
+CREATE DATABASE IF NOT EXISTS `Progel_coreV2` 
 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE `progel_v2`;
+USE `Progel_coreV2`;
 
 -- --------------------------------------------------------------------
 -- 1. CATÁLOGOS BASE
@@ -270,7 +270,7 @@ CREATE TABLE IF NOT EXISTS `produccion_reporte_maestro` (
   `fecha_registro_real` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Timestamp real de inserción',
   
   PRIMARY KEY (`id`),
-  KEY `idx_prod_maestro_fecha_hora` (`fecha`, `hora`),
+  UNIQUE KEY `uk_prod_fecha_hora` (`fecha`, `hora`),
   KEY `idx_prod_maestro_supervisor` (`supervisor_nomina`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 COMMENT='Sábana maestra de producción horaria de planta';

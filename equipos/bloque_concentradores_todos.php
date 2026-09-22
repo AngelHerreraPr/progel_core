@@ -2,6 +2,14 @@
 // Progel_cores/equipos/bloque_concentradores_todos.php
 
 function obtenerRegistroExistente2Horas($conn, $param_id) {
+    include_once __DIR__ . '/../config/db_v2.php';
+    include_once __DIR__ . '/../includes/mapeo_v2.php';
+    global $conn_v2;
+    if (isset($conn_v2) && $conn_v2) {
+        $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id);
+        if ($v2) return $v2;
+    }
+
     $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
           WHERE parametro_id = $param_id 
           AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
@@ -64,11 +72,15 @@ while($g = mysqli_fetch_assoc($q_grupos)){
     </div>
 
     <!-- Pestañas de Navegación -->
+    <?php
+    $ids_tab_list = array_column($pestañas, 'id');
+    $active_conc_id = in_array((int)$equipo_id, $ids_tab_list) ? (int)$equipo_id : ($pestañas[0]['id'] ?? 0);
+    ?>
     <ul class="nav nav-pills mb-3 gap-2" id="pills-tab" role="tablist">
         <?php foreach($pestañas as $index => $tab): 
             $tab_id = "tab_" . $tab['id'];
             $es_invertido = (strpos(strtolower($tab['nombre']), 'invertido') !== false);
-            $clase_activa = ($index == 0) ? 'active' : '';
+            $clase_activa = ((int)$tab['id'] === $active_conc_id) ? 'active' : '';
         ?>
             <li class="nav-item" role="presentation">
                 <button class="nav-link <?= $clase_activa ?> fw-bold fs-6 shadow-sm px-4 py-2" data-bs-toggle="pill" data-bs-target="#<?= $tab_id ?>" type="button" role="tab" onclick="cambiarColorPestañaConc(this, <?= $es_invertido ? 'true' : 'false' ?>)">
@@ -84,7 +96,7 @@ while($g = mysqli_fetch_assoc($q_grupos)){
             $es_invertido = (strpos(strtolower($tab['nombre']), 'invertido') !== false);
             $color_header = $es_invertido ? 'bg-primary' : 'bg-dark';
             $btn_color = $es_invertido ? 'btn-primary' : 'btn-dark';
-            $clase_pane = ($index == 0) ? 'show active' : '';
+            $clase_pane = ((int)$tab['id'] === $active_conc_id) ? 'show active' : '';
         ?>
         <div class="tab-pane fade <?= $clase_pane ?>" id="<?= $tab_id ?>" role="tabpanel">
             

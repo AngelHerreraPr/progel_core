@@ -17,7 +17,7 @@ ini_set('memory_limit', '512M');
 set_time_limit(0);
 
 echo "====================================================================\n";
-echo "  INICIANDO MIGRACIÓN AUTOMÁTICA DE DATOS: progel_cores -> progel_v2\n";
+echo "  INICIANDO MIGRACIÓN AUTOMÁTICA: progel_cores -> Progel_coreV2\n";
 echo "====================================================================\n\n";
 
 $host = '127.0.0.1';
@@ -30,7 +30,7 @@ try {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
-    $pdoV2 = new PDO("mysql:host=$host;dbname=progel_v2;charset=utf8mb4", $user, $pass, [
+    $pdoV2 = new PDO("mysql:host=$host;dbname=Progel_coreV2;charset=utf8mb4", $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
@@ -116,7 +116,7 @@ echo "   -> " . count($usuarios) . " usuarios migrados.\n\n";
 // --------------------------------------------------------------------
 echo "2. Migrando sábana maestra de producción (sup_captura_produccion)...\n";
 $sqlProd = "
-    INSERT INTO progel_v2.produccion_reporte_maestro (
+    INSERT INTO Progel_coreV2.produccion_reporte_maestro (
         id, fecha, hora, consumo_cuero_kg, cocedores_manual, caldo_pre_uf, pre_concentrado, caldo_concentrado,
         votators_activos, flujo_votator_1_lh, flujo_votator_2_lh, flujo_votator_3_lh, flujo_votator_4_lh,
         flujo_votator_5_lh, flujo_votator_6_lh, solidos_brix, humedad_tunel_1_porc, humedad_tunel_2_porc,

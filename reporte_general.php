@@ -107,7 +107,29 @@ if ($q_count) while ($row = mysqli_fetch_assoc($q_count)) $conteo_equipos[$row['
 
 // =========================================================================
 // OPTIMIZACIÓN EXTREMA: PRE-CARGA MASIVA DE LECTURAS (ELIMINA MILES DE QUERYS)
+// SOPORTE DUAL: bitacora_lecturas (Histórico) + Progel_coreV2 (Producción Nueva)
 // =========================================================================
+include_once 'config/db_v2.php';
+include_once 'includes/mapeo_v2.php';
+
+// Metadatos de parámetros para evaluar límites de KPI
+$res_p_meta = mysqli_query($conn, "SELECT id, equipo_id, tipo_dato, rojo_bajo, amarillo_bajo, amarillo_alto, rojo_alto FROM parametros");
+$meta_params = [];
+$map_inverso_v2 = [];
+if ($res_p_meta) {
+    while ($p = mysqli_fetch_assoc($res_p_meta)) {
+        $pid = (int)$p['id'];
+        $eid = (int)$p['equipo_id'];
+        $meta_params[$pid] = $p;
+        if (isset($GLOBALS['MAP_PARAMETROS_V2'][$pid])) {
+            $tabla = $GLOBALS['MAP_PARAMETROS_V2'][$pid][0];
+            $col   = $GLOBALS['MAP_PARAMETROS_V2'][$pid][1];
+            $eqNom = $GLOBALS['NOMBRES_EQUIPOS_V2'][$eid] ?? "Equipo $eid";
+            $map_inverso_v2[$tabla][$eqNom][$col] = $pid;
+        }
+    }
+}
+
 $cache_lecturas = [];
 if ($vista == 'diaria') {
     $q_cache = "SELECT parametro_id, valor_capturado, observaciones, lote, HOUR(fecha_registro) as h_reg 
@@ -121,6 +143,53 @@ if ($vista == 'diaria') {
             $h = (int)$row['h_reg'];
             $bloque = floor($h / 2) * 2; // Agrupa horas impares a su bloque par anterior
             $cache_lecturas[$pid][$bloque] = $row;
+        }
+    }
+
+    // Unir con Progel_coreV2
+    if (isset($conn_v2) && $conn_v2 && !empty($map_inverso_v2)) {
+        foreach ($map_inverso_v2 as $tabla => $equipos) {
+            $col_eq = 'equipo_nombre';
+            if ($tabla === 'bitacora_secadores') $col_eq = 'secador_nombre';
+            elseif ($tabla === 'bitacora_concentradores') $col_eq = 'concentrador_nombre';
+            elseif ($tabla === 'bitacora_compresores') $col_eq = 'compresor_nombre';
+
+            $q_v2 = "SELECT *, HOUR(fecha_registro) as h_reg FROM `$tabla` WHERE fecha = '$fecha_filtro'";
+            $res_v2 = mysqli_query($conn_v2, $q_v2);
+            if ($res_v2) {
+                while ($row = mysqli_fetch_assoc($res_v2)) {
+                    $eqActual = $row[$col_eq] ?? '';
+                    if (isset($equipos[$eqActual])) {
+                        $colsMap = $equipos[$eqActual];
+                        $h = (int)($row['h_reg'] ?? $row['hora'] ?? 0);
+                        $bloque = floor($h / 2) * 2;
+                        foreach ($colsMap as $col => $pid) {
+                            if (isset($row[$col]) && $row[$col] !== null && $row[$col] !== '') {
+                                $val = $row[$col];
+                                $cache_lecturas[$pid][$bloque] = [
+                                    'parametro_id' => $pid,
+                                    'valor_capturado' => $val,
+                                    'observaciones' => $row['observaciones'] ?? '',
+                                    'lote' => $row['lote'] ?? ''
+                                ];
+                                // Sumar al KPI si no estaba en la consulta vieja
+                                if (is_numeric($val) && isset($meta_params[$pid])) {
+                                    $total_lecturas++;
+                                    $v = (float)$val;
+                                    $p_inf = $meta_params[$pid];
+                                    $rb = $p_inf['rojo_bajo'] ?? -999999;
+                                    $ra = $p_inf['rojo_alto'] ?? 999999;
+                                    $ab = $p_inf['amarillo_bajo'] ?? -999999;
+                                    $aa = $p_inf['amarillo_alto'] ?? 999999;
+                                    if ($v <= $rb || $v >= $ra) $total_rojos++;
+                                    elseif (($v > $rb && $v <= $ab) || ($v >= $aa && $v < $ra)) $total_amarillos++;
+                                    else $total_verdes++;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 } else {
@@ -146,6 +215,36 @@ if ($vista == 'diaria') {
             }
             $cache_lecturas[$pid][$dia . '_obs'] = $row['observaciones'];
             $cache_lecturas[$pid][$dia . '_lote'] = $row['lote'];
+        }
+    }
+
+    // Unir con Progel_coreV2 semanal
+    if (isset($conn_v2) && $conn_v2 && !empty($map_inverso_v2)) {
+        foreach ($map_inverso_v2 as $tabla => $equipos) {
+            $col_eq = 'equipo_nombre';
+            if ($tabla === 'bitacora_secadores') $col_eq = 'secador_nombre';
+            elseif ($tabla === 'bitacora_concentradores') $col_eq = 'concentrador_nombre';
+            elseif ($tabla === 'bitacora_compresores') $col_eq = 'compresor_nombre';
+
+            $q_v2 = "SELECT * FROM `$tabla` WHERE fecha BETWEEN '$lunes' AND '$domingo'";
+            $res_v2 = mysqli_query($conn_v2, $q_v2);
+            if ($res_v2) {
+                while ($row = mysqli_fetch_assoc($res_v2)) {
+                    $eqActual = $row[$col_eq] ?? '';
+                    if (isset($equipos[$eqActual])) {
+                        $colsMap = $equipos[$eqActual];
+                        $dia = $row['fecha'];
+                        foreach ($colsMap as $col => $pid) {
+                            if (isset($row[$col]) && $row[$col] !== null && $row[$col] !== '') {
+                                $val = $row[$col];
+                                $cache_lecturas[$pid][$dia] = $val;
+                                $cache_lecturas[$pid][$dia . '_obs'] = $row['observaciones'] ?? '';
+                                $cache_lecturas[$pid][$dia . '_lote'] = $row['lote'] ?? '';
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

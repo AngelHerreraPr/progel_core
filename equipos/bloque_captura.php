@@ -18,8 +18,8 @@ if (in_array($equipo_id, [81, 82])) {
     // 🍯 Concentradores
     include __DIR__ . '/bloque_concentradores_todos.php';
 
-} elseif (in_array($equipo_id, [21, 23])) {
-    // 💨 Secadores
+} elseif (in_array($equipo_id, [21, 22, 23, 24])) {
+    // 💨 Secadores (1 al 4)
     include __DIR__ . '/bloque_secadores.php';
 
 } elseif (in_array($equipo_id, [12, 13])) {

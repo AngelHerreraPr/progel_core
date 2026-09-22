@@ -5,7 +5,16 @@
 function obtenerRegistroSecador($conn, $param_id, $nombre_param, $equipo_id) {
     global $conn_procesos; // <-- ¡MAGIA! Usamos la conexión segura del servidor
 
-    // 1. Primero revisa si se guardó manualmente en esta pantalla (bitácora local)
+    // 1. Primero revisa si se guardó en Progel_coreV2
+    include_once __DIR__ . '/../config/db_v2.php';
+    include_once __DIR__ . '/../includes/mapeo_v2.php';
+    global $conn_v2;
+    if (isset($conn_v2) && $conn_v2) {
+        $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id, $equipo_id);
+        if ($v2) return $v2;
+    }
+
+    // 2. Si no, revisa bitacora_lecturas por compatibilidad histórica
     $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
           WHERE parametro_id = $param_id 
           AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
@@ -113,19 +122,26 @@ $array_equipos = $es_grupo_12 ? [21 => 'Secador 1', 22 => 'Secador 2'] : [23 => 
         </div>
     </div>
 
+    <?php 
+    $active_tab_id = in_array((int)$equipo_id, array_keys($array_equipos)) ? (int)$equipo_id : array_key_first($array_equipos);
+    ?>
     <ul class="nav nav-pills flex-wrap mb-4 gap-2 justify-content-center" role="tablist">
-        <?php $first = true; foreach($array_equipos as $id_eq_actual => $nombre_eq_actual) { ?>
+        <?php foreach($array_equipos as $id_eq_actual => $nombre_eq_actual) { 
+            $is_tab_active = ($id_eq_actual === $active_tab_id);
+        ?>
             <li class="nav-item" role="presentation">
-                <button class="nav-link <?= $first ? 'active' : '' ?> fw-bold fs-5 shadow-sm px-5 py-2" data-bs-toggle="pill" data-bs-target="#tab_<?= $id_eq_actual ?>" type="button" role="tab">
+                <button class="nav-link <?= $is_tab_active ? 'active' : '' ?> fw-bold fs-5 shadow-sm px-5 py-2" data-bs-toggle="pill" data-bs-target="#tab_<?= $id_eq_actual ?>" type="button" role="tab">
                     <i class="bi bi-box-fill me-1"></i> <?= htmlspecialchars($nombre_eq_actual) ?>
                 </button>
             </li>
-        <?php $first = false; } ?>
+        <?php } ?>
     </ul>
 
     <div class="tab-content">
-        <?php $first = true; foreach($array_equipos as $id_eq_actual => $nombre_eq_actual) { ?>
-        <div class="tab-pane fade <?= $first ? 'show active' : '' ?>" id="tab_<?= $id_eq_actual ?>" role="tabpanel">
+        <?php foreach($array_equipos as $id_eq_actual => $nombre_eq_actual) { 
+            $is_pane_active = ($id_eq_actual === $active_tab_id);
+        ?>
+        <div class="tab-pane fade <?= $is_pane_active ? 'show active' : '' ?>" id="tab_<?= $id_eq_actual ?>" role="tabpanel">
             
             <form action="guardar.php" method="POST">
                 <input type="hidden" name="equipo_id" value="<?= $id_eq_actual ?>">

@@ -4,6 +4,14 @@
 
 if (!function_exists('obtenerRegistroChillerVotatorID')) {
     function obtenerRegistroChillerVotatorID($conn, $param_id) {
+        include_once __DIR__ . '/../config/db_v2.php';
+        include_once __DIR__ . '/../includes/mapeo_v2.php';
+        global $conn_v2;
+        if (isset($conn_v2) && $conn_v2) {
+            $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id);
+            if ($v2) return $v2;
+        }
+
         $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
               WHERE parametro_id = $param_id 
               AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 

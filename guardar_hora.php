@@ -54,31 +54,42 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $rech = $_POST['rechazo'] ?? null; $remo = $_POST['remoler'] ?? null;
     $efic = $_POST['eficiencia'] ?? null; $acc = $_POST['acciones'] ?? null;
 
-    $sql1 = "INSERT INTO SUP_captura_produccion (
-                fecha, hora, consumo_cuero, cocedores_manual, caldo_pre_uf, pre_concentrado, caldo_concentrado, votators_activos,
-                flujo_v1, flujo_v2, flujo_v3, flujo_v4, flujo_v5, flujo_v6, 
-                hum_t1, hum_t2, hum_t3, hum_t4, hum_t5, vel_t1, vel_t2, vel_t3, vel_t4, solidos_brix,
-                kg_teoricos, kg_reales, rechazo, remoler, eficiencia, acciones, fecha_registro_real
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
-            ON DUPLICATE KEY UPDATE 
-                consumo_cuero=VALUES(consumo_cuero), cocedores_manual=VALUES(cocedores_manual), caldo_pre_uf=VALUES(caldo_pre_uf), 
-                pre_concentrado=VALUES(pre_concentrado), caldo_concentrado=VALUES(caldo_concentrado), votators_activos=VALUES(votators_activos),
-                flujo_v1=VALUES(flujo_v1), flujo_v2=VALUES(flujo_v2), flujo_v3=VALUES(flujo_v3), flujo_v4=VALUES(flujo_v4), flujo_v5=VALUES(flujo_v5), flujo_v6=VALUES(flujo_v6), 
-                hum_t1=VALUES(hum_t1), hum_t2=VALUES(hum_t2), hum_t3=VALUES(hum_t3), hum_t4=VALUES(hum_t4), hum_t5=VALUES(hum_t5), 
-                vel_t1=VALUES(vel_t1), vel_t2=VALUES(vel_t2), vel_t3=VALUES(vel_t3), vel_t4=VALUES(vel_t4), solidos_brix=VALUES(solidos_brix),
-                kg_teoricos=VALUES(kg_teoricos), kg_reales=VALUES(kg_reales), rechazo=VALUES(rechazo), remoler=VALUES(remoler), eficiencia=VALUES(eficiencia), acciones=VALUES(acciones),
-                fecha_registro_real=NOW()";
-
-    $stmt1 = mysqli_prepare($conn, $sql1);
     $success = false;
 
-    if ($stmt1) {
-        $types = str_repeat('s', 30);
-        mysqli_stmt_bind_param($stmt1, $types, $fecha_real_captura, $hora_db, $consumo, $cocedores_man, $caldo_pre, $pre_conc, $caldo_conc, $votators, $v1, $v2, $v3, $v4, $v5, $v6, $hum1, $hum2, $hum3, $hum4, $hum5, $vel1, $vel2, $vel3, $vel4, $brix, $kg_t, $kg_r, $rech, $remo, $efic, $acc);
-        if (mysqli_stmt_execute($stmt1)) {
-            $success = true;
+    // ========================================================================
+    // GUARDADO EXCLUSIVO EN LA NUEVA BASE DE DATOS: Progel_coreV2
+    // ========================================================================
+    if (file_exists('config/db_v2.php')) {
+        include_once 'config/db_v2.php';
+        if (isset($conn_v2) && $conn_v2) {
+            $sqlV2 = "INSERT INTO produccion_reporte_maestro (
+                        fecha, hora, consumo_cuero_kg, cocedores_manual, caldo_pre_uf, pre_concentrado, caldo_concentrado, votators_activos,
+                        flujo_votator_1_lh, flujo_votator_2_lh, flujo_votator_3_lh, flujo_votator_4_lh, flujo_votator_5_lh, flujo_votator_6_lh,
+                        humedad_tunel_1_porc, humedad_tunel_2_porc, humedad_tunel_3_porc, humedad_tunel_4_porc, humedad_tunel_5_porc,
+                        velocidad_tunel_1_mh, velocidad_tunel_2_mh, velocidad_tunel_3_mh, velocidad_tunel_4_mh, solidos_brix,
+                        kg_teoricos, kg_reales, rechazo_kg, remoler_kg, eficiencia_porcentaje, observaciones_acciones, fecha_registro_real
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                    ON DUPLICATE KEY UPDATE 
+                        consumo_cuero_kg=VALUES(consumo_cuero_kg), cocedores_manual=VALUES(cocedores_manual), caldo_pre_uf=VALUES(caldo_pre_uf), 
+                        pre_concentrado=VALUES(pre_concentrado), caldo_concentrado=VALUES(caldo_concentrado), votators_activos=VALUES(votators_activos),
+                        flujo_votator_1_lh=VALUES(flujo_votator_1_lh), flujo_votator_2_lh=VALUES(flujo_votator_2_lh), flujo_votator_3_lh=VALUES(flujo_votator_3_lh),
+                        flujo_votator_4_lh=VALUES(flujo_votator_4_lh), flujo_votator_5_lh=VALUES(flujo_votator_5_lh), flujo_votator_6_lh=VALUES(flujo_votator_6_lh), 
+                        humedad_tunel_1_porc=VALUES(humedad_tunel_1_porc), humedad_tunel_2_porc=VALUES(humedad_tunel_2_porc), humedad_tunel_3_porc=VALUES(humedad_tunel_3_porc),
+                        humedad_tunel_4_porc=VALUES(humedad_tunel_4_porc), humedad_tunel_5_porc=VALUES(humedad_tunel_5_porc), 
+                        velocidad_tunel_1_mh=VALUES(velocidad_tunel_1_mh), velocidad_tunel_2_mh=VALUES(velocidad_tunel_2_mh), velocidad_tunel_3_mh=VALUES(velocidad_tunel_3_mh), velocidad_tunel_4_mh=VALUES(velocidad_tunel_4_mh), solidos_brix=VALUES(solidos_brix),
+                        kg_teoricos=VALUES(kg_teoricos), kg_reales=VALUES(kg_reales), rechazo_kg=VALUES(rechazo_kg), remoler_kg=VALUES(remoler_kg), eficiencia_porcentaje=VALUES(eficiencia_porcentaje), observaciones_acciones=VALUES(observaciones_acciones),
+                        fecha_registro_real=NOW()";
+            
+            $stmtV2 = mysqli_prepare($conn_v2, $sqlV2);
+            if ($stmtV2) {
+                $typesV2 = "si" . str_repeat('s', 28);
+                mysqli_stmt_bind_param($stmtV2, $typesV2, $fecha_real_captura, $hora_int, $consumo, $cocedores_man, $caldo_pre, $pre_conc, $caldo_conc, $votators, $v1, $v2, $v3, $v4, $v5, $v6, $hum1, $hum2, $hum3, $hum4, $hum5, $vel1, $vel2, $vel3, $vel4, $brix, $kg_t, $kg_r, $rech, $remo, $efic, $acc);
+                if (mysqli_stmt_execute($stmtV2)) {
+                    $success = true;
+                }
+                mysqli_stmt_close($stmtV2);
+            }
         }
-        mysqli_stmt_close($stmt1);
     }
     
     // ========================================================================

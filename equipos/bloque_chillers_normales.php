@@ -2,6 +2,14 @@
 // Progel_cores/equipos/bloque_chillers_normales.php
 
 function obtenerRegistroChillerInteligente($conn, $param_id, $frecuencia) {
+    include_once __DIR__ . '/../config/db_v2.php';
+    include_once __DIR__ . '/../includes/mapeo_v2.php';
+    global $conn_v2;
+    if (isset($conn_v2) && $conn_v2) {
+        $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id);
+        if ($v2) return $v2;
+    }
+
     $intervalo = ($frecuencia == 'SEMANAL') ? '7 DAY' : '12 HOUR';
     $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
           WHERE parametro_id = $param_id 
