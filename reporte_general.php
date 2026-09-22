@@ -25,13 +25,16 @@ function getBadgeClass($val, $p) {
     $val_low = strtolower(trim($val));
     if (in_array($val_low, ['realizada', 'sí', 'si', 'no presenta', 'firme'])) return 'bg-green';
     if (in_array($val_low, ['no aplica', 'n/a'])) return 'bg-gray';
-    if (in_array($val_low, ['f.o.', 'lavado', 'mtto', 'no', 'sí presenta', 'húmeda', 'sobreseca', 'quemada'])) return 'bg-red';
+    if (in_array($val_low, ['lavado'])) return 'bg-lavado';
+    if (in_array($val_low, ['f.o.', 'mtto', 'no', 'sí presenta', 'húmeda', 'sobreseca', 'quemada'])) return 'bg-red';
     return 'bg-yellow';
 }
 
-// ===== PARÁMETROS DE FILTRO =====
+// ===== PARÁMETROS DE FILTRO Y FECHA ACTUAL =====
 $fecha_filtro = isset($_GET['fecha']) ? $_GET['fecha'] : date('Y-m-d');
 $vista = isset($_GET['vista']) ? $_GET['vista'] : 'diaria';
+$fecha_hoy = date('Y-m-d');
+$hora_actual_num = (int)date('G');
 
 if ($vista == 'semanal') {
     $lunes = date('Y-m-d', strtotime('monday this week', strtotime($fecha_filtro)));
@@ -44,11 +47,24 @@ if ($vista == 'semanal') {
 }
 
 // Bloques de 2 horas
-$horas_columnas = [
+$horas_columnas_base = [
     "00:00", "02:00", "04:00", "06:00",
     "08:00", "10:00", "12:00", "14:00",
     "16:00", "18:00", "20:00", "22:00"
 ];
+
+// Si es el día de hoy, mostramos las horas conforme van pasando en el día (evita tabla gigante con horas futuras vacías)
+$mostrar_todas = isset($_GET['todas_horas']) && $_GET['todas_horas'] == '1';
+if ($vista == 'diaria' && $fecha_filtro == $fecha_hoy && !$mostrar_todas) {
+    $horas_columnas = array_values(array_filter($horas_columnas_base, function($h) use ($hora_actual_num) {
+        return (int)substr($h, 0, 2) <= $hora_actual_num;
+    }));
+    if (empty($horas_columnas)) {
+        $horas_columnas = ["00:00"];
+    }
+} else {
+    $horas_columnas = $horas_columnas_base;
+}
 
 // ===== MAGIA: BLOQUEO DE ZONA NEGRA PARA SUPERVISORES =====
 $rol_usuario_actual = $_SESSION['rol'] ?? '';
@@ -108,29 +124,26 @@ if ($vista == 'diaria') {
         }
     }
 } else {
-    // Para vista semanal: Primero el promedio
-    $q_cache = "SELECT parametro_id, DATE(fecha_registro) as dia, AVG(valor_capturado) as promedio 
+    // Para vista semanal: Obtenemos las lecturas de la semana (soporta promedios numéricos y valores cualitativos como 'Sí' o 'Realizada')
+    $q_cache = "SELECT parametro_id, DATE(fecha_registro) as dia, valor_capturado, observaciones, lote 
                 FROM bitacora_lecturas 
                 WHERE DATE(fecha_registro) BETWEEN '$lunes' AND '$domingo' 
-                GROUP BY parametro_id, DATE(fecha_registro)";
+                ORDER BY id ASC";
     $res_cache = mysqli_query($conn, $q_cache);
     if ($res_cache) {
+        $sum_vals = [];
+        $count_vals = [];
         while ($row = mysqli_fetch_assoc($res_cache)) {
             $pid = $row['parametro_id'];
             $dia = $row['dia'];
-            $cache_lecturas[$pid][$dia] = $row['promedio'];
-        }
-    }
-    // Luego las observaciones y lotes más recientes de ese día
-    $q_cache_det = "SELECT parametro_id, DATE(fecha_registro) as dia, observaciones, lote 
-                    FROM bitacora_lecturas 
-                    WHERE DATE(fecha_registro) BETWEEN '$lunes' AND '$domingo' 
-                    ORDER BY id ASC";
-    $res_cache_det = mysqli_query($conn, $q_cache_det);
-    if ($res_cache_det) {
-        while ($row = mysqli_fetch_assoc($res_cache_det)) {
-            $pid = $row['parametro_id'];
-            $dia = $row['dia'];
+            $val = $row['valor_capturado'];
+            if (is_numeric($val)) {
+                $sum_vals[$pid][$dia] = ($sum_vals[$pid][$dia] ?? 0) + (float)$val;
+                $count_vals[$pid][$dia] = ($count_vals[$pid][$dia] ?? 0) + 1;
+                $cache_lecturas[$pid][$dia] = round($sum_vals[$pid][$dia] / $count_vals[$pid][$dia], 2);
+            } else {
+                $cache_lecturas[$pid][$dia] = $val;
+            }
             $cache_lecturas[$pid][$dia . '_obs'] = $row['observaciones'];
             $cache_lecturas[$pid][$dia . '_lote'] = $row['lote'];
         }
@@ -153,6 +166,11 @@ include 'includes/header.php';
                     <button type="button" class="btn-vista <?= $vista=='diaria'?'active':'' ?>" onclick="document.getElementById('inputVistaHidden').value='diaria'; document.getElementById('formVista').submit();">Día</button>
                     <button type="button" class="btn-vista <?= $vista=='semanal'?'active':'' ?>" onclick="document.getElementById('inputVistaHidden').value='semanal'; document.getElementById('formVista').submit();">Semana</button>
                 </div>
+                <?php if ($vista == 'diaria' && $fecha_filtro == $fecha_hoy): ?>
+                    <button type="button" class="btn btn-sm <?= $mostrar_todas ? 'btn-primary' : 'btn-outline-secondary' ?> fw-bold" onclick="const url = new URL(window.location.href); url.searchParams.set('todas_horas', '<?= $mostrar_todas ? '0' : '1' ?>'); window.location.href = url.href;" title="Alternar entre ver solo las horas transcurridas o todas las 24 hrs">
+                        <i class="bi <?= $mostrar_todas ? 'bi-clock' : 'bi-eye' ?>"></i> <?= $mostrar_todas ? 'Ver transcurridas' : 'Ver 24 hrs' ?>
+                    </button>
+                <?php endif; ?>
                 <button type="button" class="btn btn-outline-dark btn-sm fw-bold" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
             </form>
         </div>
@@ -329,7 +347,20 @@ include 'includes/header.php';
                                                         <div class="card-equipo" id="equipo-<?= $eq_id ?>">
                                                             <div class="card-header-equipo">
                                                                 <h6><i class="bi bi-cpu"></i> <?= htmlspecialchars($eq_nombre) ?></h6>
-                                                                <a href="historial.php?id=<?= $eq_id ?>" class="btn-historial"><i class="bi bi-clock-history"></i> Historial</a>
+                                                                <div class="d-flex align-items-center gap-2">
+                                                                    <?php
+                                                                    // Verificar si el equipo cuenta con parámetros de rutina semanal
+                                                                    $tiene_semanal = false;
+                                                                    $q_chk_sem = mysqli_query($conn, "SELECT 1 FROM parametros WHERE equipo_id = $eq_id AND frecuencia = 'SEMANAL' LIMIT 1");
+                                                                    if ($q_chk_sem && mysqli_num_rows($q_chk_sem) > 0) $tiene_semanal = true;
+                                                                    ?>
+                                                                    <?php if ($vista == 'diaria' && $tiene_semanal): ?>
+                                                                        <a href="reporte_general.php?vista=semanal&fecha=<?= urlencode($fecha_filtro) ?>#equipo-<?= $eq_id ?>" class="btn btn-outline-info btn-sm fw-bold" style="font-size: 0.72rem; padding: 0.15rem 0.6rem; border-radius: 20px;" title="Ver rutina semanal de este equipo">
+                                                                            <i class="bi bi-calendar-week"></i> Rutina Semanal
+                                                                        </a>
+                                                                    <?php endif; ?>
+                                                                    <a href="historial.php?id=<?= $eq_id ?>" class="btn-historial"><i class="bi bi-clock-history"></i> Historial</a>
+                                                                </div>
                                                             </div>
                                                             <div class="table-wrap">
                                                                 <table class="table-matriz">
@@ -339,7 +370,10 @@ include 'includes/header.php';
                                                                             <?php
                                                                             if ($vista == 'diaria') {
                                                                                 foreach ($horas_columnas as $hora) {
-                                                                                    echo "<th>$hora</th>";
+                                                                                    $h_num = (int)substr($hora, 0, 2);
+                                                                                    $es_hora_actual = ($fecha_filtro == $fecha_hoy && $hora_actual_num >= $h_num && $hora_actual_num < ($h_num + 2));
+                                                                                    $th_class = $es_hora_actual ? 'th-hora-actual' : '';
+                                                                                    echo "<th class='$th_class'" . ($es_hora_actual ? " title='Bloque horario actual en curso'" : "") . ">$hora</th>";
                                                                                 }
                                                                             } else {
                                                                                 foreach ($dias_semana as $dia) {
@@ -351,38 +385,42 @@ include 'includes/header.php';
                                                                     </thead>
                                                                     <tbody>
                                                                         <?php
-                                                                        $q_params = "SELECT * FROM parametros WHERE equipo_id = $eq_id ORDER BY id ASC";
+                                                                        // En la vista diaria NO mostramos parámetros semanales (evita falsos 'Sin registro' cada 2 horas)
+                                                                        $filtro_param_frec = ($vista == 'diaria') ? "AND (frecuencia != 'SEMANAL' OR frecuencia IS NULL)" : "";
+                                                                        $q_params = "SELECT * FROM parametros WHERE equipo_id = $eq_id $filtro_param_frec ORDER BY id ASC";
                                                                         $res_params = mysqli_query($conn, $q_params);
                                                                         if ($res_params && mysqli_num_rows($res_params) > 0) {
                                                                             while ($p = mysqli_fetch_assoc($res_params)) {
                                                                                 $p_nombre_norm = mb_strtolower($p['nombre_parametro'], 'UTF-8');
                                                                                 ?>
                                                                                 <tr class="fila-parametro" data-param-nombre="<?= htmlspecialchars($p_nombre_norm) ?>">
-                                                                                    <td class="parametro-nombre"><?= htmlspecialchars($p['nombre_parametro']) ?></td>
+                                                                                    <td class="parametro-nombre">
+                                                                                        <?= htmlspecialchars($p['nombre_parametro']) ?>
+                                                                                        <?php if ($vista == 'semanal' && ($p['frecuencia'] ?? '') == 'SEMANAL'): ?>
+                                                                                            <span class="badge bg-secondary ms-1" style="font-size:0.6rem; vertical-align:middle;">Semanal</span>
+                                                                                        <?php endif; ?>
+                                                                                    </td>
                                                                                     <?php
                                                                                     if ($vista == 'diaria') {
                                                                                         foreach ($horas_columnas as $hora) {
                                                                                             $hora_num = (int)substr($hora, 0, 2);
                                                                                             
+                                                                                            // Determinar si la hora ya concluyó
+                                                                                            $hora_ya_paso = false;
+                                                                                            if ($fecha_filtro < $fecha_hoy) {
+                                                                                                $hora_ya_paso = true; // Día anterior completo
+                                                                                            } elseif ($fecha_filtro == $fecha_hoy) {
+                                                                                                // El bloque de 2 horas (ej. 08:00 comprende 08:00 a 09:59). A las 10:00 ya concluyó.
+                                                                                                $hora_ya_paso = ($hora_actual_num >= ($hora_num + 2));
+                                                                                            }
+
                                                                                             // OPTIMIZACIÓN: Tomamos la información de la memoria cache
                                                                                             $reg = $cache_lecturas[$p['id']][$hora_num] ?? null;
                                                                                             $val = $reg['valor_capturado'] ?? null;
                                                                                             $obs = $reg['observaciones'] ?? '';
                                                                                             $lote_val = $reg['lote'] ?? '';
 
-                                                                                            $badge_class = 'bg-gray';
-                                                                                            if ($val !== null && is_numeric($val)) {
-                                                                                                $v = (float)$val;
-                                                                                                $rb = $p['rojo_bajo'] ?? -999999;
-                                                                                                $ra = $p['rojo_alto'] ?? 999999;
-                                                                                                $ab = $p['amarillo_bajo'] ?? -999999;
-                                                                                                $aa = $p['amarillo_alto'] ?? 999999;
-                                                                                                if ($v <= $rb || $v >= $ra) $badge_class = 'bg-red';
-                                                                                                elseif (($v > $rb && $v <= $ab) || ($v >= $aa && $v < $ra)) $badge_class = 'bg-yellow';
-                                                                                                else $badge_class = 'bg-green';
-                                                                                            } elseif ($val !== null) {
-                                                                                                $badge_class = 'bg-gray';
-                                                                                            }
+                                                                                            $badge_class = getBadgeClass($val, $p);
                                                                                             ?>
                                                                                             <td>
                                                                                                 <?php if ($val !== null): ?>
@@ -394,33 +432,29 @@ include 'includes/header.php';
                                                                                                         <div class="obs-box"><?= htmlspecialchars($obs) ?></div>
                                                                                                     <?php endif; ?>
                                                                                                 <?php else: ?>
-                                                                                                    <span class="text-muted">—</span>
+                                                                                                    <?php if ($hora_ya_paso): ?>
+                                                                                                        <span class="badge-no-registro" title="Hora concluida: no se hizo ningún registro">Sin registro</span>
+                                                                                                    <?php else: ?>
+                                                                                                        <span class="text-muted" title="Hora pendiente">—</span>
+                                                                                                    <?php endif; ?>
                                                                                                 <?php endif; ?>
                                                                                             </td>
                                                                                         <?php }
                                                                                     } else {
                                                                                         // Vista semanal
                                                                                         foreach ($dias_fechas as $dia) {
+                                                                                            $dia_ya_paso = ($dia < $fecha_hoy);
+
                                                                                             // OPTIMIZACIÓN: Tomamos la información de la memoria cache
                                                                                             $val = $cache_lecturas[$p['id']][$dia] ?? null;
                                                                                             $obs = $cache_lecturas[$p['id']][$dia . '_obs'] ?? '';
                                                                                             $lote_val = $cache_lecturas[$p['id']][$dia . '_lote'] ?? '';
 
-                                                                                            $badge_class = 'bg-gray';
-                                                                                            if ($val !== null && is_numeric($val)) {
-                                                                                                $v = (float)$val;
-                                                                                                $rb = $p['rojo_bajo'] ?? -999999;
-                                                                                                $ra = $p['rojo_alto'] ?? 999999;
-                                                                                                $ab = $p['amarillo_bajo'] ?? -999999;
-                                                                                                $aa = $p['amarillo_alto'] ?? 999999;
-                                                                                                if ($v <= $rb || $v >= $ra) $badge_class = 'bg-red';
-                                                                                                elseif (($v > $rb && $v <= $ab) || ($v >= $aa && $v < $ra)) $badge_class = 'bg-yellow';
-                                                                                                else $badge_class = 'bg-green';
-                                                                                            }
+                                                                                            $badge_class = getBadgeClass($val, $p);
                                                                                             ?>
                                                                                             <td>
                                                                                                 <?php if ($val !== null): ?>
-                                                                                                    <span class="badge-valor <?= $badge_class ?>"><?= number_format($val, 1) ?></span>
+                                                                                                    <span class="badge-valor <?= $badge_class ?>"><?= is_numeric($val) ? number_format((float)$val, 1) : htmlspecialchars($val) ?></span>
                                                                                                     <?php if (!empty($lote_val)): ?>
                                                                                                         <br><div class="lote-badge"><i class="bi bi-box-seam"></i> <?= htmlspecialchars($lote_val) ?></div>
                                                                                                     <?php endif; ?>
@@ -428,7 +462,11 @@ include 'includes/header.php';
                                                                                                         <div class="obs-box"><?= htmlspecialchars($obs) ?></div>
                                                                                                     <?php endif; ?>
                                                                                                 <?php else: ?>
-                                                                                                    <span class="text-muted">—</span>
+                                                                                                    <?php if ($dia_ya_paso): ?>
+                                                                                                        <span class="badge-no-registro" title="Día concluido: no se hizo ningún registro">Sin registro</span>
+                                                                                                    <?php else: ?>
+                                                                                                        <span class="text-muted" title="Día pendiente">—</span>
+                                                                                                    <?php endif; ?>
                                                                                                 <?php endif; ?>
                                                                                             </td>
                                                                                         <?php }
