@@ -1,5 +1,5 @@
 <?php
-// Progel_cores/login.php
+// progel_core/login.php
 session_start();
 
 // Si ya inició sesión, lo mandamos directo al mapa
@@ -12,37 +12,57 @@ include 'config/db.php';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $nomina = $_POST['nomina'] ?? '';
+    $nomina = trim($_POST['nomina'] ?? '');
     
     if (!empty($nomina)) {
-        $stmt = mysqli_prepare($conn, "SELECT nombre, rol, zona_asignada FROM usuarios WHERE nomina = ?");
-        mysqli_stmt_bind_param($stmt, "i", $nomina);
-        mysqli_stmt_execute($stmt);
-        $result = mysqli_stmt_get_result($stmt);
-        
-        if ($row = mysqli_fetch_assoc($result)) {
-            // Guardamos sus datos en la sesión del navegador
-            $_SESSION['nomina'] = $nomina;
-            $_SESSION['nombre'] = $row['nombre'];
-            $_SESSION['rol'] = $row['rol'];
-            $_SESSION['zona'] = $row['zona_asignada'];
+        // Asegurar que la columna activo exista en la tabla usuarios
+        $chk_col = @mysqli_query($conn, "SHOW COLUMNS FROM usuarios LIKE 'activo'");
+        if ($chk_col && mysqli_num_rows($chk_col) === 0) {
+            @mysqli_query($conn, "ALTER TABLE usuarios ADD COLUMN activo TINYINT(1) NOT NULL DEFAULT 1");
+        }
+
+        $stmt = mysqli_prepare($conn, "SELECT * FROM usuarios WHERE nomina = ?");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "s", $nomina);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
             
-            // Acceso concedido
-            header("Location: index.php");
-            exit();
+            if ($result && $row = mysqli_fetch_assoc($result)) {
+                if (isset($row['activo']) && (int)$row['activo'] === 0) {
+                    $error = "Esta nómina se encuentra dada de baja y no tiene acceso al sistema.";
+                } else {
+                    // Guardamos sus datos en la sesión del navegador (soporta columna 'nombre' o 'nombre_completo')
+                    $_SESSION['nomina'] = $nomina;
+                    $_SESSION['nombre'] = $row['nombre'] ?? $row['nombre_completo'] ?? 'Usuario';
+                    $_SESSION['rol'] = strtoupper(trim($row['rol'] ?? 'OPERADOR'));
+                    $_SESSION['zona'] = $row['zona_asignada'] ?? 'TODAS';
+                    $_SESSION['ultima_actividad'] = time();
+
+                    // Cookie global compartida para Single Sign-On (SSO) con Sis_extraccion y demás módulos
+                    setcookie('progel_nomina_activa', $nomina, time() + (86400 * 30), '/');
+                    
+                    // Acceso concedido
+                    header("Location: index.php");
+                    exit();
+                }
+            } else {
+                $error = "Nómina no autorizada en el sistema.";
+            }
+            mysqli_stmt_close($stmt);
         } else {
-            $error = "Nómina no autorizada en el sistema.";
+            $error = "Error al consultar la tabla de usuarios en la base de datos.";
         }
     }
 }
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <title>Acceso - PROGEL</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="assets/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="assets/vendor/bootstrap-icons/bootstrap-icons.min.css">
     <style>
         body { background-color: #f4f6f9; display: flex; align-items: center; justify-content: center; height: 100vh; }
         .login-card { max-width: 400px; width: 100%; border-radius: 15px; overflow: hidden; }
@@ -57,6 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <p class="mb-0 text-light">Control de Acceso</p>
         </div>
         <div class="card-body p-4">
+            <?php if (isset($_GET['timeout'])): ?>
+                <div class="alert alert-warning text-center p-2 fw-semibold">
+                    <i class="bi bi-clock-history me-1"></i> Tu sesión se cerró automáticamente por inactividad.
+                </div>
+            <?php endif; ?>
             <?php if($error): ?>
                 <div class="alert alert-danger text-center p-2"><i class="bi bi-exclamation-triangle"></i> <?= $error ?></div>
             <?php endif; ?>

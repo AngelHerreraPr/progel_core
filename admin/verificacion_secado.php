@@ -2,24 +2,16 @@
 // verificacion_secado.php
 session_start();
 if (!isset($_SESSION['nomina'])) {
-    header("Location: index.php");
+    header("Location: ../index.php");
     exit();
 }
 
 date_default_timezone_set('America/Mazatlan');
 
 // ========================================================================
-// 1. CONEXIÓN A LA BASE DE DATOS DE PROCESOS (Progel_procesos)
+// 1. CONEXIÓN A LAS BASES DE DATOS (Centralizadas en config/db.php)
 // ========================================================================
-$host_procesos = "localhost";
-$user_procesos = "root";
-$pass_procesos = ""; 
-$db_procesos   = "Progel_procesos";
-
-$conn_procesos = mysqli_connect($host_procesos, $user_procesos, $pass_procesos, $db_procesos);
-if (!$conn_procesos) {
-    die("Error de conexión a Progel_procesos: " . mysqli_connect_error());
-}
+include __DIR__ . '/../config/db.php';
 
 $fecha_filtro = $_GET['fecha'] ?? date('Y-m-d');
 
@@ -140,7 +132,7 @@ if ($stmt_v) {
     mysqli_stmt_close($stmt_v);
 }
 
-include 'includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
@@ -295,7 +287,7 @@ include 'includes/header.php';
                 <label class="text-secondary small fw-bold"><i class="bi bi-calendar-event-fill me-1"></i>Fecha:</label>
                 <input type="date" name="fecha" class="form-control form-control-sm fw-bold text-dark border-0 bg-white" value="<?= $fecha_filtro ?>" onchange="this.form.submit()">
             </form>
-            <a href="reporte_maestro.php" class="btn btn-outline-secondary btn-sm fw-bold rounded-pill px-4 py-2 shadow-sm">
+            <a href="../reporte_maestro.php" class="btn btn-outline-secondary btn-sm fw-bold rounded-pill px-4 py-2 shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> Regresar al Maestro
             </a>
         </div>
@@ -475,5 +467,5 @@ include 'includes/header.php';
 
 <?php 
 mysqli_close($conn_procesos);
-include 'includes/footer.php'; 
+include __DIR__ . '/../includes/footer.php'; 
 ?>

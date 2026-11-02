@@ -4,7 +4,7 @@ date_default_timezone_set('America/Mazatlan');
 
 $host_v2 = "localhost";
 $user_v2 = "root";
-$pass_v2 = "";
+$pass_v2 = "Pr0gel+2024";
 $db_v2   = "Progel_coreV2";
 
 $conn_v2 = mysqli_connect($host_v2, $user_v2, $pass_v2, $db_v2);

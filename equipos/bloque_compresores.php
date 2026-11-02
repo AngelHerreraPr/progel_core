@@ -1,44 +1,100 @@
 <?php
-// Progel_cores/equipos/bloque_compresores.php
+// progel_core/equipos/bloque_compresores.php
 
-function obtenerRegistroCompresorInteligente($conn, $param_id, $frecuencia) {
-    include_once __DIR__ . '/../config/db_v2.php';
-    include_once __DIR__ . '/../includes/mapeo_v2.php';
-    global $conn_v2;
-    if (isset($conn_v2) && $conn_v2) {
-        $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id);
-        if ($v2) return $v2;
+include_once __DIR__ . '/../config/db_v2.php';
+include_once __DIR__ . '/../includes/mapeo_v2.php';
+
+// 🚀 OPTIMIZACIÓN: Pre-cargar lecturas y parámetros en lote
+$params_por_frec_comp = [];
+$q_all_params_comp = mysqli_query($conn, "SELECT * FROM parametros WHERE equipo_id = $equipo_id ORDER BY id ASC");
+if ($q_all_params_comp) {
+    while ($p_row = mysqli_fetch_assoc($q_all_params_comp)) {
+        $f = $p_row['frecuencia'];
+        $params_por_frec_comp[$f][] = $p_row;
+    }
+}
+
+$v2_rows_compresores = [];
+if (isset($conn_v2) && $conn_v2) {
+    $q_v2 = "SELECT * FROM bitacora_compresores 
+             WHERE fecha_registro >= DATE_SUB(NOW(), INTERVAL 7 DAY) 
+             ORDER BY id DESC";
+    $res_v2 = mysqli_query($conn_v2, $q_v2);
+    if ($res_v2) {
+        while ($r = mysqli_fetch_assoc($res_v2)) {
+            if (!isset($v2_rows_compresores[$r['compresor_nombre']])) {
+                $v2_rows_compresores[$r['compresor_nombre']] = $r;
+            }
+        }
+    }
+}
+
+$lecturas_locales_comp = [];
+$q_loc = mysqli_query($conn, "
+    SELECT parametro_id, valor_capturado, observaciones 
+    FROM bitacora_lecturas 
+    WHERE equipo_id = $equipo_id 
+    AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 7 DAY) 
+    ORDER BY id ASC
+");
+if ($q_loc) {
+    while ($r = mysqli_fetch_assoc($q_loc)) {
+        $lecturas_locales_comp[$r['parametro_id']] = $r;
+    }
+}
+
+function obtenerRegistroCompresorInteligente($conn, $param_id, $frecuencia, $equipo_id = 0) {
+    global $v2_rows_compresores, $lecturas_locales_comp;
+
+    // 1. Revisar caché en memoria V2
+    $eqNombre = ($equipo_id == 12) ? 'Compresor 30 HP' : (($equipo_id == 13) ? 'Compresor 50 HP' : '');
+    if (!empty($eqNombre) && isset($v2_rows_compresores[$eqNombre])) {
+        $v2_row = $v2_rows_compresores[$eqNombre];
+        if (isset($GLOBALS['MAP_PARAMETROS_V2'][$param_id])) {
+            $col = $GLOBALS['MAP_PARAMETROS_V2'][$param_id][1];
+            if (isset($v2_row[$col]) && $v2_row[$col] !== null && $v2_row[$col] !== '') {
+                return [
+                    'valor_capturado' => $v2_row[$col],
+                    'observaciones' => $v2_row['observaciones'] ?? ''
+                ];
+            }
+        }
     }
 
-    $intervalo = ($frecuencia == 'SEMANAL') ? '7 DAY' : '12 HOUR';
-    $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
-          WHERE parametro_id = $param_id 
-          AND fecha_registro >= DATE_SUB(NOW(), INTERVAL $intervalo) 
-          ORDER BY id DESC LIMIT 1";
-    $res = mysqli_query($conn, $q);
-    return mysqli_fetch_assoc($res);
+    // 2. Revisar caché en memoria local
+    if (isset($lecturas_locales_comp[$param_id])) {
+        return $lecturas_locales_comp[$param_id];
+    }
+
+    return null;
 }
 
-function getSemaforoColorCompresor($val, $rb, $ab, $aa, $ra) {
-    if (!is_numeric($val)) return 'bg-secondary';
-    $v = (float)$val;
-    $rb = $rb ?? -999999; $ab = $ab ?? -999999;
-    $aa = $aa ?? 999999; $ra = $ra ?? 999999;
-    if ($v <= $rb || $v >= $ra) return 'semaforo-r';
-    if (($v > $rb && $v <= $ab) || ($v >= $aa && $v < $ra)) return 'semaforo-a';
-    return 'semaforo-v';
+if (!function_exists('getSemaforoColorCompresor')) {
+    function getSemaforoColorCompresor($val, $rb, $ab, $aa, $ra) {
+        if (!is_numeric($val)) return 'bg-secondary';
+        $v = (float)$val;
+        $rb = $rb ?? -999999; $ab = $ab ?? -999999;
+        $aa = $aa ?? 999999; $ra = $ra ?? 999999;
+        if ($v <= $rb || $v >= $ra) return 'semaforo-r';
+        if (($v > $rb && $v <= $ab) || ($v >= $aa && $v < $ra)) return 'semaforo-a';
+        return 'semaforo-v';
+    }
 }
 
-function fmt($val) { return number_format((float)$val, 2, '.', ''); }
+if (!function_exists('fmt')) {
+    function fmt($val) { return number_format((float)$val, 2, '.', ''); }
+}
 
-$q_frec = mysqli_query($conn, "SELECT DISTINCT frecuencia FROM parametros WHERE equipo_id = $equipo_id ORDER BY frecuencia ASC");
-$frecuencias = [];
+$frecuencias = array_keys($params_por_frec_comp);
+if (empty($frecuencias)) $frecuencias = ['DIARIO'];
+/*
 while($f = mysqli_fetch_assoc($q_frec)){ 
     $frecuencias[] = $f['frecuencia']; 
 }
 if(empty($frecuencias)) {
     $frecuencias[] = 'DIARIO';
 }
+*/
 ?>
 
 <style>
@@ -98,7 +154,7 @@ if(empty($frecuencias)) {
             $clase_pane = ($index == 0) ? 'show active' : '';
         ?>
         <div class="tab-pane fade <?php echo $clase_pane; ?>" id="tab_<?php echo md5($frec); ?>" role="tabpanel">
-            <form action="guardar.php" method="POST">
+            <form action="acciones/guardar.php" method="POST">
                 <input type="hidden" name="equipo_id" value="<?php echo $equipo_id; ?>">
                 <input type="hidden" name="frecuencia_tab" value="<?php echo htmlspecialchars($frec); ?>">
                 <input type="hidden" name="numero_nomina" value="<?php echo htmlspecialchars($_SESSION['nomina']); ?>">
@@ -119,13 +175,9 @@ if(empty($frecuencias)) {
                             </thead>
                             <tbody>
                                 <?php
-                                $stmt_p = mysqli_prepare($conn, "SELECT * FROM parametros WHERE equipo_id = ? AND frecuencia = ? ORDER BY id ASC");
-                                mysqli_stmt_bind_param($stmt_p, "is", $equipo_id, $frec);
-                                mysqli_stmt_execute($stmt_p);
-                                $params = mysqli_stmt_get_result($stmt_p);
-
-                                while ($p = mysqli_fetch_assoc($params)) {
-                                    $reg = obtenerRegistroCompresorInteligente($conn, $p['id'], $frec);
+                                $params_comp = $params_por_frec_comp[$frec] ?? [];
+                                foreach ($params_comp as $p) {
+                                    $reg = obtenerRegistroCompresorInteligente($conn, $p['id'], $frec, $equipo_id);
                                     
                                     $rb = $p['rojo_bajo']; $ab = $p['amarillo_bajo'];
                                     $aa = $p['amarillo_alto']; $ra = $p['rojo_alto'];

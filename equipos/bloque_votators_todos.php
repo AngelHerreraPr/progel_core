@@ -1,9 +1,32 @@
 <?php
-// Progel_corese/equipos/bloque_votators_todos.php
+// progel_coree/equipos/bloque_votators_todos.php
 // MÓDULO EXCLUSIVO PARA VOTATORS (IDs 84 al 89) CON DELTA A PRUEBA DE BALAS
+
+// 🎯 CONSULTA DIRECTA POR LOS IDs DE TUS VOTATORS (84 AL 89)
+$ids_votators = [84, 85, 86, 87, 88, 89];
+$ids_str = implode(',', $ids_votators);
+
+// 🚀 OPTIMIZACIÓN: Pre-cargar todas las lecturas de los últimos 90 min en 1 sola consulta
+$lecturas_recientes_votators = [];
+$q_recientes = mysqli_query($conn, "
+    SELECT parametro_id, valor_capturado, observaciones 
+    FROM bitacora_lecturas 
+    WHERE equipo_id IN ($ids_str) 
+    AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+    ORDER BY id ASC
+");
+if ($q_recientes) {
+    while ($r_rec = mysqli_fetch_assoc($q_recientes)) {
+        $lecturas_recientes_votators[$r_rec['parametro_id']] = $r_rec;
+    }
+}
 
 if (!function_exists('obtenerRegistroExistenteVotatorTodos')) {
     function obtenerRegistroExistenteVotatorTodos($conn, $param_id) {
+        global $lecturas_recientes_votators;
+        if (isset($lecturas_recientes_votators)) {
+            return $lecturas_recientes_votators[$param_id] ?? null;
+        }
         $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
               WHERE parametro_id = $param_id 
               AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
@@ -34,9 +57,7 @@ if (!function_exists('fmtVT')) {
     }
 }
 
-// 🎯 CONSULTA DIRECTA POR LOS IDs DE TUS VOTATORS (84 AL 89)
-$ids_votators = [84, 85, 86, 87, 88, 89];
-$q_votators = mysqli_query($conn, "SELECT id, nombre FROM equipos WHERE id IN (" . implode(',', $ids_votators) . ") ORDER BY id ASC");
+$q_votators = mysqli_query($conn, "SELECT id, nombre FROM equipos WHERE id IN ($ids_str) ORDER BY id ASC");
 
 $pestañas_votator = [];
 if($q_votators){
@@ -45,6 +66,15 @@ if($q_votators){
             'id' => $v['id'],
             'nombre' => $v['nombre']
         ];
+    }
+}
+
+// Pre-cargar todos los parámetros de todos los Votators en 1 sola consulta
+$params_por_votator = [];
+$q_all_params = mysqli_query($conn, "SELECT * FROM parametros WHERE equipo_id IN ($ids_str) ORDER BY equipo_id ASC, id ASC");
+if ($q_all_params) {
+    while ($p_row = mysqli_fetch_assoc($q_all_params)) {
+        $params_por_votator[$p_row['equipo_id']][] = $p_row;
     }
 }
 
@@ -109,7 +139,7 @@ $equipo_id_solicitado = intval($_GET['id'] ?? 0);
                     </div>
 
                     <div class="card-body p-0">
-                        <form action="guardar.php" method="POST">
+                        <form action="acciones/guardar.php" method="POST">
                             <input type="hidden" name="equipo_id" value="<?= $eq_id ?>">
                             <input type="hidden" name="frecuencia_tab" value="CADA 2 HORAS">
                             <input type="hidden" name="numero_nomina" value="<?= htmlspecialchars($_SESSION['nomina'] ?? '') ?>">
@@ -126,12 +156,8 @@ $equipo_id_solicitado = intval($_GET['id'] ?? 0);
                                     </thead>
                                     <tbody>
                                         <?php
-                                        $stmt_p = mysqli_prepare($conn, "SELECT * FROM parametros WHERE equipo_id = ? ORDER BY id ASC");
-                                        mysqli_stmt_bind_param($stmt_p, "i", $eq_id);
-                                        mysqli_stmt_execute($stmt_p);
-                                        $params = mysqli_stmt_get_result($stmt_p);
-
-                                        while ($p = mysqli_fetch_assoc($params)):
+                                        $params_votator = $params_por_votator[$eq_id] ?? [];
+                                        foreach ($params_votator as $p):
                                             $reg = obtenerRegistroExistenteVotatorTodos($conn, $p['id']);
                                             $rb = $p['rojo_bajo']; $ab = $p['amarillo_bajo'];
                                             $aa = $p['amarillo_alto']; $ra = $p['rojo_alto'];
@@ -217,7 +243,7 @@ $equipo_id_solicitado = intval($_GET['id'] ?? 0);
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
-                                        <?php endwhile; ?>
+                                        <?php endforeach; ?>
                                     </tbody>
                                 </table>
                             </div>

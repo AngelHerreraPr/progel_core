@@ -1,5 +1,5 @@
 <?php
-// Progel_cores/captura.php
+// progel_core/captura.php
 session_start();
 
 // SI NO HA INICIADO SESIÓN, NO LO DEJAMOS PASAR
@@ -15,6 +15,16 @@ include 'includes/funciones.php';
 $tipo = $_GET['tipo'] ?? '';
 $equipo_id = intval($_GET['id'] ?? 0);
 
+// Redirección directa para Votators, Secadores y Concentradores al sistema externo Sis_Extracción
+if (in_array($equipo_id, [84, 85, 86, 87, 88, 89])) {
+    header("Location: http://localhost/sis_extraccion/index.php?view=votators");
+    exit();
+}
+if (in_array($equipo_id, [21, 22, 23, 24])) {
+    header("Location: http://localhost/sis_extraccion/index.php?view=secadores");
+    exit();
+}
+
 // Buscamos el nombre del equipo
 $stmt = mysqli_prepare($conn, "SELECT e.nombre as equipo, a.nombre as area, z.nombre as zona, z.id as zona_id 
                                FROM equipos e 
@@ -25,7 +35,29 @@ mysqli_stmt_bind_param($stmt, "i", $equipo_id);
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $equipo = mysqli_fetch_assoc($result);
-$nombre_equipo = $equipo['equipo'] ?? 'Equipo';
+if ($equipo_id == 100) {
+    $nombre_equipo = !empty($equipo['equipo']) ? $equipo['equipo'] : 'Sistema de Membranas (Ultrafiltración)';
+} else {
+    $nombre_equipo = $equipo['equipo'] ?? 'Equipo';
+}
+
+// Control de acceso al equipo según las zonas autorizadas del usuario
+$rol_u = strtoupper(trim($_SESSION['rol'] ?? ''));
+$zona_u = strtoupper(trim($_SESSION['zona'] ?? 'TODAS'));
+$es_admin_jefe = in_array($rol_u, ['ADMIN', 'JEFATURA', 'SUPERVISOR']);
+
+if (!$es_admin_jefe && $zona_u !== 'TODAS' && $equipo && !empty($equipo['zona'])) {
+    $nom_z = strtoupper($equipo['zona']);
+    $tiene_acceso = false;
+    if (strpos($nom_z, 'BLANCA') !== false && strpos($zona_u, 'BLANCA') !== false) $tiene_acceso = true;
+    if (strpos($nom_z, 'GRIS') !== false && strpos($zona_u, 'GRIS') !== false) $tiene_acceso = true;
+    if (strpos($nom_z, 'NEGRA') !== false && strpos($zona_u, 'NEGRA') !== false) $tiene_acceso = true;
+
+    if (!$tiene_acceso) {
+        header("Location: index.php?error=zona_no_autorizada");
+        exit();
+    }
+}
 
 include 'includes/header.php';
 ?>
@@ -36,8 +68,8 @@ include 'includes/header.php';
             <h2 class="m-0 fw-bold text-dark"><?= htmlspecialchars($nombre_equipo) ?></h2>
             <small class="text-muted">Operador: <?= htmlspecialchars($_SESSION['nombre']) ?> (Nómina: <?= htmlspecialchars($_SESSION['nomina']) ?>)</small>
         </div>
-        <a href="index.php" class="btn btn-outline-secondary fw-bold">
-            Regresar al Mapa
+        <a href="<?= !empty($equipo['zona_id']) ? 'zona.php?id=' . (int)$equipo['zona_id'] : 'index.php' ?>" class="btn btn-outline-secondary fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> <?= !empty($equipo['zona']) ? 'Volver a ' . htmlspecialchars($equipo['zona']) : 'Regresar al Mapa' ?>
         </a>
     </div>
 
@@ -79,9 +111,23 @@ function marcarEquipo(estado, equipoId) {
             }
 
             el.value = estado;
-            el.setAttribute('readonly', true);
-            el.style.backgroundColor = (estado === 'F.O.') ? '#f8d7da' : (estado === 'LAVADO' ? '#cff4fc' : '');
-            el.style.color = (estado === 'F.O.') ? '#842029' : (estado === 'LAVADO' ? '#055160' : '');
+            if (estado === '') {
+                el.removeAttribute('readonly');
+                el.style.backgroundColor = '';
+                el.style.color = '';
+            } else {
+                el.setAttribute('readonly', true);
+                if (estado === 'F.O.') {
+                    el.style.backgroundColor = '#f8d7da';
+                    el.style.color = '#842029';
+                } else if (estado === 'LAVADO') {
+                    el.style.backgroundColor = '#cff4fc';
+                    el.style.color = '#055160';
+                } else if (estado === 'MMTT' || estado === 'MTTO' || estado === 'MMT') {
+                    el.style.backgroundColor = '#fff3cd';
+                    el.style.color = '#664d03';
+                }
+            }
             el.style.fontWeight = 'bold';
             el.classList.remove('semaforo-v', 'semaforo-a', 'semaforo-r');
         }

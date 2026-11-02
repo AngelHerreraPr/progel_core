@@ -1,40 +1,124 @@
 <?php
-// Progel_cores/equipos/bloque_secadores.php
+// progel_core/equipos/bloque_secadores.php
 
 // FUNCIÓN: Búsqueda Dual (Local y Reporte Maestro)
-function obtenerRegistroSecador($conn, $param_id, $nombre_param, $equipo_id) {
-    global $conn_procesos; // <-- ¡MAGIA! Usamos la conexión segura del servidor
+// LÓGICA DE AGRUPACIÓN INTELIGENTE
+$es_grupo_12 = in_array($equipo_id, [21, 22]);
+$titulo_modulo = $es_grupo_12 ? 'Módulo: Secadores 1 y 2' : 'Módulo: Secadores 3 y 4';
+$array_equipos = $es_grupo_12 ? [21 => 'Secador 1', 22 => 'Secador 2'] : [23 => 'Secador 3', 24 => 'Secador 4'];
 
-    // 1. Primero revisa si se guardó en Progel_coreV2
-    include_once __DIR__ . '/../config/db_v2.php';
-    include_once __DIR__ . '/../includes/mapeo_v2.php';
-    global $conn_v2;
-    if (isset($conn_v2) && $conn_v2) {
-        $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id, $equipo_id);
-        if ($v2) return $v2;
+include_once __DIR__ . '/../config/db_v2.php';
+include_once __DIR__ . '/../includes/mapeo_v2.php';
+
+// 🚀 OPTIMIZACIÓN: Pre-cargar parámetros y lecturas de los secadores en lote
+$sec_ids = array_keys($array_equipos);
+$sec_ids_str = implode(',', $sec_ids);
+
+// 1. Parámetros pre-cargados
+$params_por_secador = [];
+$q_all_params_sec = mysqli_query($conn, "SELECT * FROM parametros WHERE equipo_id IN ($sec_ids_str) ORDER BY equipo_id ASC, id ASC");
+if ($q_all_params_sec) {
+    while ($p_row = mysqli_fetch_assoc($q_all_params_sec)) {
+        $params_por_secador[$p_row['equipo_id']][] = $p_row;
+    }
+}
+
+// 2. Lecturas V2 recientes
+$v2_rows_por_secador = [];
+if (isset($conn_v2) && $conn_v2) {
+    $sec_nombres_quoted = array_map(function($n) use ($conn_v2) {
+        return "'" . mysqli_real_escape_string($conn_v2, $n) . "'";
+    }, array_values($array_equipos));
+    $q_v2 = "SELECT * FROM bitacora_secadores 
+             WHERE secador_nombre IN (" . implode(',', $sec_nombres_quoted) . ") 
+             AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+             ORDER BY id DESC";
+    $res_v2 = mysqli_query($conn_v2, $q_v2);
+    if ($res_v2) {
+        while ($r_v2 = mysqli_fetch_assoc($res_v2)) {
+            if (!isset($v2_rows_por_secador[$r_v2['secador_nombre']])) {
+                $v2_rows_por_secador[$r_v2['secador_nombre']] = $r_v2;
+            }
+        }
+    }
+}
+
+// 3. Lecturas locales recientes (bitacora_lecturas)
+$lecturas_locales_sec = [];
+$q_local_sec = mysqli_query($conn, "
+    SELECT parametro_id, valor_capturado, observaciones 
+    FROM bitacora_lecturas 
+    WHERE equipo_id IN ($sec_ids_str) 
+    AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+    ORDER BY id ASC
+");
+if ($q_local_sec) {
+    while ($r_loc = mysqli_fetch_assoc($q_local_sec)) {
+        $lecturas_locales_sec[$r_loc['parametro_id']] = $r_loc;
+    }
+}
+
+// 4. Verificación secado reciente (Progel_procesos)
+$proc_por_secador = [];
+if (isset($conn_procesos) && $conn_procesos) {
+    $sec_nums_map = [21 => 1, 22 => 2, 23 => 3, 24 => 4];
+    $nums_a_consultar = [];
+    foreach ($sec_ids as $sid) {
+        if (isset($sec_nums_map[$sid])) $nums_a_consultar[] = $sec_nums_map[$sid];
+    }
+    if (!empty($nums_a_consultar)) {
+        $fecha_hoy = date('Y-m-d');
+        $q_proc_batch = "SELECT * FROM verificacion_secado 
+                         WHERE fecha = '$fecha_hoy' 
+                         AND secador IN (" . implode(',', $nums_a_consultar) . ") 
+                         AND creado_en >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+                         ORDER BY creado_en DESC";
+        $res_proc_b = mysqli_query($conn_procesos, $q_proc_batch);
+        if ($res_proc_b) {
+            while ($r_pb = mysqli_fetch_assoc($res_proc_b)) {
+                if (!isset($proc_por_secador[$r_pb['secador']])) {
+                    $proc_por_secador[$r_pb['secador']] = $r_pb;
+                }
+            }
+        }
+    }
+}
+
+// FUNCIÓN: Búsqueda Dual con caché en memoria
+function obtenerRegistroSecador($conn, $param_id, $nombre_param, $equipo_id) {
+    global $conn_procesos, $conn_v2, $v2_rows_por_secador, $lecturas_locales_sec, $proc_por_secador, $array_equipos;
+
+    // 1. Revisar caché en memoria V2
+    $sec_nombre = $array_equipos[$equipo_id] ?? '';
+    if (!empty($sec_nombre) && isset($v2_rows_por_secador[$sec_nombre])) {
+        $v2_row = $v2_rows_por_secador[$sec_nombre];
+        if (isset($GLOBALS['MAP_PARAMETROS_V2'][$param_id])) {
+            $col = $GLOBALS['MAP_PARAMETROS_V2'][$param_id][1];
+            if (isset($v2_row[$col]) && $v2_row[$col] !== null && $v2_row[$col] !== '') {
+                return [
+                    'valor_capturado' => $v2_row[$col],
+                    'observaciones' => $v2_row['observaciones'] ?? ''
+                ];
+            }
+        }
     }
 
-    // 2. Si no, revisa bitacora_lecturas por compatibilidad histórica
-    $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
-          WHERE parametro_id = $param_id 
-          AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
-          ORDER BY id DESC LIMIT 1";
-    $res = mysqli_query($conn, $q);
-    $local = mysqli_fetch_assoc($res);
-    if ($local) return $local;
+    // 2. Revisar caché en memoria de bitacora_lecturas
+    if (isset($lecturas_locales_sec[$param_id])) {
+        return $lecturas_locales_sec[$param_id];
+    }
 
-    // 2. Si no hay registro local, busca automáticamente en el Reporte Maestro (Progel_procesos)
+    // 3. Revisar caché en memoria de Reporte Maestro (Progel_procesos)
     $secador_num = 0;
     if ($equipo_id == 21) $secador_num = 1;
     if ($equipo_id == 22) $secador_num = 2;
     if ($equipo_id == 23) $secador_num = 3;
     if ($equipo_id == 24) $secador_num = 4;
 
-    if ($secador_num > 0) {
+    if ($secador_num > 0 && isset($proc_por_secador[$secador_num])) {
+        $row_proc = $proc_por_secador[$secador_num];
         $col = "";
         $n = mb_strtolower($nombre_param, 'UTF-8');
-        
-        // Mapeamos el nombre del parámetro con la columna de la tabla maestra
         if (strpos($n, 'flujo') !== false) $col = 'flujo';
         elseif (strpos($n, 'frecuencia') !== false || strpos($n, 'velocidad') !== false) $col = 'hz';
         elseif (strpos($n, 'rc 9') !== false || strpos($n, 'rc9') !== false) $col = 'rc9';
@@ -44,52 +128,38 @@ function obtenerRegistroSecador($conn, $param_id, $nombre_param, $equipo_id) {
         elseif (strpos($n, 'relativa') !== false) $col = 'hum_relativa_cam5';
         elseif (strpos($n, 'textura') !== false) $col = 'textura';
 
-        // Si detectó la columna y hay conexión activa al servidor...
-        if ($col !== "" && $conn_procesos) {
-            $fecha_hoy = date('Y-m-d');
-            // Buscamos si en los últimos 90 mins alguien guardó desde la matriz SCADA
-            $q_proc = "SELECT $col as val, estado_fo FROM verificacion_secado 
-                       WHERE fecha = '$fecha_hoy' AND secador = $secador_num 
-                       AND creado_en >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
-                       ORDER BY creado_en DESC LIMIT 1";
-            $res_proc = mysqli_query($conn_procesos, $q_proc);
-            if ($res_proc) {
-                $row_proc = mysqli_fetch_assoc($res_proc);
-                if ($row_proc) {
-                    if ($row_proc['estado_fo'] == 1) {
-                        return ['valor_capturado' => 'F.O.', 'observaciones' => 'Auto-Sync (Reporte Maestro)'];
-                    }
-                    if ($row_proc['val'] !== null && $row_proc['val'] !== '') {
-                        // LA MAGIA PARA ARREGLAR EL -1
-                        $valor_sincronizado = $row_proc['val'];
-                        if ($valor_sincronizado == -1 || $valor_sincronizado == '-1' || $valor_sincronizado == '-1.00') {
-                            $valor_sincronizado = 'F.O.';
-                        }
-                        return ['valor_capturado' => $valor_sincronizado, 'observaciones' => 'Auto-Sync (Reporte Maestro)'];
-                    }
+        if ($col !== "" && isset($row_proc[$col])) {
+            if (isset($row_proc['estado_fo']) && $row_proc['estado_fo'] == 1) {
+                return ['valor_capturado' => 'F.O.', 'observaciones' => 'Auto-Sync (Reporte Maestro)'];
+            }
+            if ($row_proc[$col] !== null && $row_proc[$col] !== '') {
+                $valor_sincronizado = $row_proc[$col];
+                if ($valor_sincronizado == -1 || $valor_sincronizado == '-1' || $valor_sincronizado == '-1.00') {
+                    $valor_sincronizado = 'F.O.';
                 }
+                return ['valor_capturado' => $valor_sincronizado, 'observaciones' => 'Auto-Sync (Reporte Maestro)'];
             }
         }
     }
+
     return null;
 }
 
-function getSemaforoColorSecador($val, $rb, $ab, $aa, $ra) {
-    if (!is_numeric($val)) return 'bg-secondary';
-    $v = (float)$val;
-    $rb = $rb ?? -999999; $ab = $ab ?? -999999;
-    $aa = $aa ?? 999999; $ra = $ra ?? 999999;
-    if ($v <= $rb || $v >= $ra) return 'semaforo-r';
-    if (($v > $rb && $v <= $ab) || ($v >= $aa && $v < $ra)) return 'semaforo-a';
-    return 'semaforo-v';
+if (!function_exists('getSemaforoColorSecador')) {
+    function getSemaforoColorSecador($val, $rb, $ab, $aa, $ra) {
+        if (!is_numeric($val)) return 'bg-secondary';
+        $v = (float)$val;
+        $rb = $rb ?? -999999; $ab = $ab ?? -999999;
+        $aa = $aa ?? 999999; $ra = $ra ?? 999999;
+        if ($v <= $rb || $v >= $ra) return 'semaforo-r';
+        if (($v > $rb && $v <= $ab) || ($v >= $aa && $v < $ra)) return 'semaforo-a';
+        return 'semaforo-v';
+    }
 }
 
-function fmt($val) { return number_format((float)$val, 2, '.', ''); }
-
-// LÓGICA DE AGRUPACIÓN INTELIGENTE
-$es_grupo_12 = in_array($equipo_id, [21, 22]);
-$titulo_modulo = $es_grupo_12 ? 'Módulo: Secadores 1 y 2' : 'Módulo: Secadores 3 y 4';
-$array_equipos = $es_grupo_12 ? [21 => 'Secador 1', 22 => 'Secador 2'] : [23 => 'Secador 3', 24 => 'Secador 4'];
+if (!function_exists('fmt')) {
+    function fmt($val) { return number_format((float)$val, 2, '.', ''); }
+}
 ?>
 
 <style>
@@ -143,7 +213,7 @@ $array_equipos = $es_grupo_12 ? [21 => 'Secador 1', 22 => 'Secador 2'] : [23 => 
         ?>
         <div class="tab-pane fade <?= $is_pane_active ? 'show active' : '' ?>" id="tab_<?= $id_eq_actual ?>" role="tabpanel">
             
-            <form action="guardar.php" method="POST">
+            <form action="acciones/guardar.php" method="POST">
                 <input type="hidden" name="equipo_id" value="<?= $id_eq_actual ?>">
                 <input type="hidden" name="frecuencia_tab" value="CADA 3 HORAS">
                 <input type="hidden" name="numero_nomina" value="<?= htmlspecialchars($_SESSION['nomina']); ?>">
@@ -194,12 +264,8 @@ $array_equipos = $es_grupo_12 ? [21 => 'Secador 1', 22 => 'Secador 2'] : [23 => 
                             </thead>
                             <tbody>
                                 <?php
-                                $stmt_p = mysqli_prepare($conn, "SELECT * FROM parametros WHERE equipo_id = ? ORDER BY id ASC");
-                                mysqli_stmt_bind_param($stmt_p, "i", $id_eq_actual);
-                                mysqli_stmt_execute($stmt_p);
-                                $params = mysqli_stmt_get_result($stmt_p);
-
-                                while ($p = mysqli_fetch_assoc($params)) {
+                                $params_secador = $params_por_secador[$id_eq_actual] ?? [];
+                                foreach ($params_secador as $p) {
                                     $reg = obtenerRegistroSecador($conn, $p['id'], $p['nombre_parametro'], $id_eq_actual);
                                     
                                     $rb = $p['rojo_bajo']; $ab = $p['amarillo_bajo'];

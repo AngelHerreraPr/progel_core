@@ -1,16 +1,17 @@
 <?php 
-// Progel_cores/equipos/bloque_lista_normal.php
+// progel_core/equipos/bloque_lista_normal.php
 
-// Buscamos dinámicamente las frecuencias que tenga este equipo en la BD
-$stmt_f = mysqli_prepare($conn, "SELECT DISTINCT frecuencia FROM parametros WHERE equipo_id = ? ORDER BY FIELD(frecuencia, 'DIARIO', 'SEMANAL', 'MENSUAL')");
-mysqli_stmt_bind_param($stmt_f, "i", $equipo_id);
-mysqli_stmt_execute($stmt_f);
-$res_f = mysqli_stmt_get_result($stmt_f);
-
-$frecuencias_tab = [];
-while($row_f = mysqli_fetch_assoc($res_f)) {
-    if(!empty($row_f['frecuencia'])) $frecuencias_tab[] = $row_f['frecuencia'];
+// 🚀 OPTIMIZACIÓN: Pre-cargar todos los parámetros en 1 sola consulta
+$params_por_frec_grupo_norm = [];
+$q_all_norm = mysqli_query($conn, "SELECT * FROM parametros WHERE equipo_id = $equipo_id ORDER BY FIELD(frecuencia, 'DIARIO', 'SEMANAL', 'MENSUAL'), grupo ASC, id ASC");
+if ($q_all_norm) {
+    while ($p_row = mysqli_fetch_assoc($q_all_norm)) {
+        $f = $p_row['frecuencia'] ?: 'DIARIO';
+        $g = $p_row['grupo'] ?: 'GENERAL';
+        $params_por_frec_grupo_norm[$f][$g][] = $p_row;
+    }
 }
+$frecuencias_tab = array_keys($params_por_frec_grupo_norm);
 if (empty($frecuencias_tab)) $frecuencias_tab = ['DIARIO'];
 ?>
 
@@ -49,20 +50,14 @@ if (empty($frecuencias_tab)) $frecuencias_tab = ['DIARIO'];
 <div class="tab-content">
     <?php foreach($frecuencias_tab as $index => $ft): ?>
         <div class="tab-pane fade <?= $index == 0 ? 'show active' : '' ?>" id="tab-<?= str_replace(' ', '_', $ft) ?>">
-            <form action="/Progel_cores/guardar.php" method="POST" class="formCaptura">
+            <form action="acciones/guardar.php" method="POST" class="formCaptura">
                 <input type="hidden" name="equipo_id" value="<?= $equipo_id ?>">
                 <input type="hidden" name="frecuencia_tab" value="<?= htmlspecialchars($ft) ?>">
                 <input type="hidden" name="numero_nomina" value="<?= htmlspecialchars($_SESSION['nomina']) ?>">
 
                 <?php
-                // Obtener los grupos únicos asignados a este equipo (ej. CHILLER 1, CHILLER 2, GENERAL)
-                $stmt_grupos = mysqli_prepare($conn, "SELECT DISTINCT grupo FROM parametros WHERE equipo_id = ? AND frecuencia = ? ORDER BY grupo ASC");
-                mysqli_stmt_bind_param($stmt_grupos, "is", $equipo_id, $ft);
-                mysqli_stmt_execute($stmt_grupos);
-                $query_grupos = mysqli_stmt_get_result($stmt_grupos);
-
-                while ($g = mysqli_fetch_assoc($query_grupos)):
-                    $nombre_grupo = $g['grupo'] ?: 'GENERAL';
+                $grupos_en_frec_norm = $params_por_frec_grupo_norm[$ft] ?? [];
+                foreach ($grupos_en_frec_norm as $nombre_grupo => $params_grupo):
                 ?>
                     <div class="card shadow-sm border-0 mb-4 rounded-3 overflow-hidden">
                         <div class="card-header bg-dark text-white py-2 px-3 fw-bold">
@@ -80,13 +75,7 @@ if (empty($frecuencias_tab)) $frecuencias_tab = ['DIARIO'];
                                 </thead>
                                 <tbody>
                                     <?php
-                                    // Consultar únicamente los parámetros pertenecientes a este grupo específico
-                                    $stmt_p = mysqli_prepare($conn, "SELECT * FROM parametros WHERE equipo_id = ? AND frecuencia = ? AND (grupo = ? OR (grupo IS NULL AND ? = 'GENERAL')) ORDER BY id ASC");
-                                    mysqli_stmt_bind_param($stmt_p, "isss", $equipo_id, $ft, $nombre_grupo, $nombre_grupo);
-                                    mysqli_stmt_execute($stmt_p);
-                                    $params = mysqli_stmt_get_result($stmt_p);
-
-                                    while ($p = mysqli_fetch_assoc($params)):
+                                    foreach ($params_grupo as $p):
                                         $rb = $p['rojo_bajo']; $ab = $p['amarillo_bajo'];
                                         $aa = $p['amarillo_alto']; $ra = $p['rojo_alto'];
                                         $nombre_param = strtolower($p['nombre_parametro']);
@@ -124,12 +113,12 @@ if (empty($frecuencias_tab)) $frecuencias_tab = ['DIARIO'];
                                             <textarea name="obs_<?= $p['id'] ?>" class="form-control form-control-sm input-equipo-<?= $equipo_id ?>" id="obs_<?= $p['id'] ?>" rows="1" placeholder="Observaciones..."></textarea>
                                         </td>
                                     </tr>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
 
                 <div class="mt-4 p-2">
                     <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold fs-4">

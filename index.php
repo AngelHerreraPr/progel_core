@@ -223,7 +223,7 @@ switch ($rol_usuario) {
             <p class="text-muted m-0 small mt-1">Selecciona el área de trabajo correspondiente para ingresar.</p>
         </div>
         <div>
-            <a href="logout.php" class="btn btn-outline-danger fw-bold rounded-pill px-4 shadow-sm">
+            <a href="acciones/logout.php" class="btn btn-outline-danger fw-bold rounded-pill px-4 shadow-sm">
                 <i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión
             </a>
         </div>
@@ -248,6 +248,17 @@ switch ($rol_usuario) {
                         <a href="reporte_maestro.php" class="btn btn-dark fw-bold px-4 py-2 shadow-sm rounded-pill">
                             <i class="bi bi-layout-text-window-reverse me-1"></i> Reporte Hora por Hora
                         </a>
+                        <?php if ($rol_usuario === 'ADMIN'): ?>
+                            <a href="admin/admin_usuarios.php" class="btn btn-primary fw-bold px-4 py-2 shadow-sm rounded-pill text-white" title="Exclusivo Administrador: Agregar usuarios, cambiar su zona o darlos de baja sin eliminar">
+                                <i class="bi bi-people-fill me-1"></i> Usuarios y Accesos (Admin)
+                            </a>
+                            <a href="admin/config_parametros.php" class="btn btn-danger fw-bold px-4 py-2 shadow-sm rounded-pill text-white" title="Exclusivo Administrador: Separar y modificar rangos de parámetros">
+                                <i class="bi bi-sliders2-vertical me-1"></i> Rangos y Parámetros (Admin)
+                            </a>
+                            <a href="tools/visor_migrador_sql.php" class="btn btn-warning fw-bold px-3 py-2 shadow-sm rounded-pill text-dark" title="Exclusivo Administrador: Diagnóstico y carga de SQL">
+                                <i class="bi bi-database-check me-1"></i> Diagnóstico y Carga SQL
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

@@ -11,7 +11,7 @@
 
 El sistema de control de planta PROGEL opera mediante dos bases de datos interconectadas:
 
-1. **`progel_cores`**:
+1. **`progel_core`**:
    - Administra el portal web, seguridad de usuarios y permisos.
    - Contiene la jerarquía maestra de planta: **Zonas ➔ Áreas ➔ Equipos ➔ Parámetros**.
    - Almacena el histórico de lecturas manuales de equipos (`bitacora_lecturas`).
@@ -23,7 +23,7 @@ El sistema de control de planta PROGEL opera mediante dos bases de datos interco
 
 ---
 
-## 2. Diagrama de Relaciones (`progel_cores`)
+## 2. Diagrama de Relaciones (`progel_core`)
 
 ```mermaid
 erDiagram
@@ -101,7 +101,7 @@ erDiagram
 
 ---
 
-## 3. Catálogo Detallado de Tablas (`progel_cores`)
+## 3. Catálogo Detallado de Tablas (`progel_core`)
 
 ### 3.1. `produccion_reporte_maestro`
 *Propósito:* Almacena el consolidado horario de la sábana de producción (Reporte Maestro) tanto para turno Diurno (07:00 a 18:00) como Nocturno (19:00 a 06:00).

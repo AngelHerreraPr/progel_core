@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.4.7, for Win64 (x86_64)
 --
--- Host: localhost    Database: progel_cores
+-- Host: localhost    Database: progel_core
 -- ------------------------------------------------------
 -- Server version	8.4.7
 

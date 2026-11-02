@@ -1,24 +1,74 @@
 <?php
-// Progel_cores/equipos/bloque_concentradores_todos.php
+// progel_core/equipos/bloque_concentradores_todos.php
 
-function obtenerRegistroExistente2Horas($conn, $param_id) {
-    include_once __DIR__ . '/../config/db_v2.php';
-    include_once __DIR__ . '/../includes/mapeo_v2.php';
-    global $conn_v2;
-    if (isset($conn_v2) && $conn_v2) {
-        $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id);
-        if ($v2) return $v2;
-    }
-
-    $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
-          WHERE parametro_id = $param_id 
-          AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
-          ORDER BY id DESC LIMIT 1";
-    $res = mysqli_query($conn, $q);
-    return mysqli_fetch_assoc($res);
-}
+include_once __DIR__ . '/../config/db_v2.php';
+include_once __DIR__ . '/../includes/mapeo_v2.php';
 
 $ids_concentradores = "14, 15, 16, 17, 18";
+
+// 🚀 OPTIMIZACIÓN: Pre-cargar lecturas y parámetros en lote
+$params_por_conc = [];
+$q_all_params_c = mysqli_query($conn, "SELECT * FROM parametros WHERE equipo_id IN ($ids_concentradores) ORDER BY equipo_id ASC, id ASC");
+if ($q_all_params_c) {
+    while ($p_row = mysqli_fetch_assoc($q_all_params_c)) {
+        $params_por_conc[$p_row['equipo_id']][] = $p_row;
+    }
+}
+
+$v2_rows_por_conc = [];
+if (isset($conn_v2) && $conn_v2) {
+    $q_v2 = "SELECT * FROM bitacora_concentradores 
+             WHERE fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+             ORDER BY id DESC";
+    $res_v2 = mysqli_query($conn_v2, $q_v2);
+    if ($res_v2) {
+        while ($r = mysqli_fetch_assoc($res_v2)) {
+            if (!isset($v2_rows_por_conc[$r['concentrador_nombre']])) {
+                $v2_rows_por_conc[$r['concentrador_nombre']] = $r;
+            }
+        }
+    }
+}
+
+$lecturas_locales_conc = [];
+$q_loc = mysqli_query($conn, "
+    SELECT parametro_id, valor_capturado, observaciones 
+    FROM bitacora_lecturas 
+    WHERE equipo_id IN ($ids_concentradores) 
+    AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+    ORDER BY id ASC
+");
+if ($q_loc) {
+    while ($r = mysqli_fetch_assoc($q_loc)) {
+        $lecturas_locales_conc[$r['parametro_id']] = $r;
+    }
+}
+
+function obtenerRegistroExistente2Horas($conn, $param_id, $equipo_id = 0, $nombre_tab = '') {
+    global $v2_rows_por_conc, $lecturas_locales_conc;
+
+    // 1. Revisar caché en memoria V2
+    if (!empty($nombre_tab) && isset($v2_rows_por_conc[$nombre_tab])) {
+        $v2_row = $v2_rows_por_conc[$nombre_tab];
+        if (isset($GLOBALS['MAP_PARAMETROS_V2'][$param_id])) {
+            $col = $GLOBALS['MAP_PARAMETROS_V2'][$param_id][1];
+            if (isset($v2_row[$col]) && $v2_row[$col] !== null && $v2_row[$col] !== '') {
+                return [
+                    'valor_capturado' => $v2_row[$col],
+                    'observaciones' => $v2_row['observaciones'] ?? ''
+                ];
+            }
+        }
+    }
+
+    // 2. Revisar caché en memoria local
+    if (isset($lecturas_locales_conc[$param_id])) {
+        return $lecturas_locales_conc[$param_id];
+    }
+
+    return null;
+}
+
 $q_grupos = mysqli_query($conn, "SELECT DISTINCT equipo_id, grupo FROM parametros WHERE equipo_id IN ($ids_concentradores) ORDER BY equipo_id ASC");
 $pestañas = [];
 while($g = mysqli_fetch_assoc($q_grupos)){
@@ -100,7 +150,7 @@ while($g = mysqli_fetch_assoc($q_grupos)){
         ?>
         <div class="tab-pane fade <?= $clase_pane ?>" id="<?= $tab_id ?>" role="tabpanel">
             
-            <form action="guardar.php" method="POST">
+            <form action="acciones/guardar.php" method="POST">
                 <input type="hidden" name="es_multiequipo" value="1">
                 <input type="hidden" name="equipo_id" value="<?= $tab['id'] ?>">
                 <input type="hidden" name="frecuencia_tab" value="CADA 2 HORAS">
@@ -141,13 +191,9 @@ while($g = mysqli_fetch_assoc($q_grupos)){
                             </thead>
                             <tbody>
                                 <?php
-                                $stmt_p = mysqli_prepare($conn, "SELECT * FROM parametros WHERE equipo_id = ? ORDER BY id ASC");
-                                mysqli_stmt_bind_param($stmt_p, "i", $tab['id']);
-                                mysqli_stmt_execute($stmt_p);
-                                $params = mysqli_stmt_get_result($stmt_p);
-
-                                while ($p = mysqli_fetch_assoc($params)): 
-                                    $reg = obtenerRegistroExistente2Horas($conn, $p['id']);
+                                $params_conc = $params_por_conc[$tab['id']] ?? [];
+                                foreach ($params_conc as $p): 
+                                    $reg = obtenerRegistroExistente2Horas($conn, $p['id'], $tab['id'], $tab['nombre']);
                                     $rb = $p['rojo_bajo'];
                                     $ab = $p['amarillo_bajo'];
                                     $aa = $p['amarillo_alto'];
@@ -220,7 +266,7 @@ while($g = mysqli_fetch_assoc($q_grupos)){
                                         <?php endif; ?>
                                     </td>
                                 </tr>
-                                <?php endwhile; ?>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>

@@ -2,7 +2,7 @@
 // 1. Conexiones a las bases de datos
 include 'config/db.php'; 
 include 'config/db_aveva.php'; 
-include 'logica_reporte_maestro.php'; 
+include 'includes/logica_reporte_maestro.php'; 
 
 date_default_timezone_set('America/Mazatlan');
 
@@ -74,15 +74,14 @@ if ($stmt_manual) {
 }
 
 // LECTURA BD ANTIGUA (Para precargar al editar)
-$conn_procesos_local = mysqli_connect("localhost", "root", "", "Progel_procesos");
-if ($conn_procesos_local) {
+if (isset($conn_procesos) && $conn_procesos) {
     if ($turno_seleccionado == 'diurno') {
         $sql_sec = "SELECT * FROM verificacion_secado WHERE fecha = ? AND HOUR(hora) BETWEEN 7 AND 18";
-        $stmt_sec = mysqli_prepare($conn_procesos_local, $sql_sec);
+        $stmt_sec = mysqli_prepare($conn_procesos, $sql_sec);
         mysqli_stmt_bind_param($stmt_sec, 's', $fecha_seleccionada);
     } else {
         $sql_sec = "SELECT * FROM verificacion_secado WHERE (fecha = ? AND HOUR(hora) >= 19) OR (fecha = ? AND HOUR(hora) <= 6)";
-        $stmt_sec = mysqli_prepare($conn_procesos_local, $sql_sec);
+        $stmt_sec = mysqli_prepare($conn_procesos, $sql_sec);
         mysqli_stmt_bind_param($stmt_sec, 'ss', $fecha_seleccionada, $fecha_siguiente);
     }
 
@@ -90,29 +89,36 @@ if ($conn_procesos_local) {
         mysqli_stmt_execute($stmt_sec);
         $res_sec = mysqli_stmt_get_result($stmt_sec);
         while ($row = mysqli_fetch_assoc($res_sec)) {
-            $hora_clave = substr($row['hora'], 0, 5);
+            $h_num = intval(date('H', strtotime($row['hora'])));
+            $hora_clave = str_pad($h_num, 2, '0', STR_PAD_LEFT) . ':00';
             if (!isset($manual_data[$hora_clave])) {
                 $manual_data[$hora_clave] = [];
             }
             if (!isset($manual_data[$hora_clave]['secadores'])) {
                 $manual_data[$hora_clave]['secadores'] = [];
             }
+            $est_txt = ($row['textura'] === 'LAVADO') ? 'LAVADO' : 'F.O.';
+            $normSec = function($v) use ($est_txt) {
+                if ($v !== null && ((string)$v === '-1' || (is_numeric($v) && floatval($v) == -1))) return $est_txt;
+                return $v;
+            };
             $manual_data[$hora_clave]['secadores'][$row['secador']] = [
                 'estado_fo' => $row['estado_fo'],
-                'flujo' => $row['flujo'],
-                'hz' => $row['hz'],
-                'rc9' => $row['rc9'],
-                'hum_penultima' => $row['hum_penultima'],
-                'hum_ultima' => $row['hum_ultima'],
-                'altura_galleta' => $row['altura_galleta'],
-                'hum_relativa_cam5' => $row['hum_relativa_cam5'],
+                'flujo' => $normSec($row['flujo']),
+                'hz' => $normSec($row['hz']),
+                'rc9' => $normSec($row['rc9']),
+                'hum_penultima' => $normSec($row['hum_penultima']),
+                'altura_galleta' => $normSec($row['altura_galleta']),
+                'hum_relativa_cam5' => $normSec($row['hum_relativa_cam5']),
                 'textura' => $row['textura']
             ];
         }
         mysqli_stmt_close($stmt_sec);
     }
-    mysqli_close($conn_procesos_local);
 }
+
+// LECTURA DE HUMEDAD OFICIAL DESDE progel_procesos.calidad_humedad_secadores
+$calidad_humedad_data = obtenerHumedadSecadoresProcesos($conn_procesos, $fecha_seleccionada, $turno_seleccionado);
 
 $horas_diurno = [];
 for ($i = 7; $i <= 18; $i++) $horas_diurno[] = str_pad($i, 2, '0', STR_PAD_LEFT) . ':00';
@@ -139,8 +145,11 @@ include 'includes/header.php';
             </div>
             
             <div class="d-flex align-items-center gap-2">
-                <a href="verificacion_secado.php" class="btn btn-success fw-bold rounded-pill shadow-sm px-4">
-                    <i class="bi bi-wind me-1"></i> Ir a Verificación de Secado
+                <button type="button" class="btn btn-primary fw-bold rounded-pill shadow-sm px-4" data-bs-toggle="modal" data-bs-target="#exportarExcelModal">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Exportar
+                </button>
+                <a href="admin/verificacion_secado.php" class="btn btn-success fw-bold rounded-pill shadow-sm px-4">
+                    <i class="bi bi-wind me-1"></i> Secado
                 </a>
                 <a href="index.php" class="btn btn-outline-secondary fw-bold rounded-pill shadow-sm px-4">
                     <i class="bi bi-arrow-left me-1"></i> Menú
@@ -168,7 +177,7 @@ include 'includes/header.php';
 
     <!-- PANEL DE CAPTURA MANUAL -->
     <div class="master-card">
-        <form method="POST" action="guardar_hora.php" autocomplete="off" id="form-captura-manual">
+        <form method="POST" action="acciones/guardar_hora.php" autocomplete="off" id="form-captura-manual">
             <input type="hidden" name="fecha_original" value="<?= $fecha_seleccionada ?>">
             <input type="hidden" name="turno" value="<?= $turno_seleccionado ?>">
             <input type="hidden" name="fecha" value="<?= $fecha_seleccionada ?>">
@@ -179,7 +188,7 @@ include 'includes/header.php';
                     <small class="text-muted">Selecciona la hora para cargar o registrar datos.</small>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <!-- ACCIONES MAESTRAS RÁPIDAS (F.O. / LAVADO / LIMPIAR) -->
+                    <!-- ACCIONES MAESTRAS RÃPIDAS (F.O. / LAVADO / LIMPIAR) -->
                     <div class="btn-group shadow-sm" role="group" aria-label="Acciones rápidas globales">
                         <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-rapido-accion d-flex align-items-center gap-1" onclick="marcarTodo('FO')" title="Marcar toda la maquinaria en Fuera de Operación">
                             <i class="bi bi-x-circle-fill text-danger"></i> <span>F.O.</span>
@@ -256,37 +265,60 @@ include 'includes/header.php';
 
                         <div>
                             <label class="input-label text-primary">Flujo Total</label>
-                            <input type="text" id="flujo_votators_total" class="form-control form-control-sm text-primary fw-bold bg-white shadow-sm" readonly placeholder="Auto">
+                            <input type="text" id="flujo_votators_total" class="form-control form-control-sm text-primary fw-bold bg-white shadow-sm" readonly placeholder="Automático">
                         </div>
                     </div>
                 </div>
 
                 <!-- SECCIÓN 3: TÚNELES Y MATRIZ SECADORES (1 AL 4) COMPACTADA -->
                 <div class="group-card mb-4 shadow-sm" style="background-color: #f8fff9; border-color: #a3cfbb;">
-                    <h6 class="section-title text-success text-darken"><i class="bi bi-thermometer-half text-success"></i> Humedad y Velocidad de Túneles</h6>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                        <h6 class="section-title text-success text-darken m-0">
+                            <i class="bi bi-droplet-half text-success"></i> Humedad y Velocidad de Túneles
+                        </h6>
+                      
+                    </div>
                     
-                    <div class="input-grid input-grid-compact mb-4">
-                        <!-- Botones de F.O. para Humedades -->
-                        <?php for($i=1; $i<=4; $i++): ?>
-                        <div>
-                            <label class="input-label">Hum T<?= $i ?></label>
-                            <div class="input-group input-group-sm shadow-sm rounded-2">
-                                <input type="number" step="0.01" name="hum_t<?= $i ?>" id="input_hum_t<?= $i ?>" class="form-control border-end-0" oninput="copiarHumedadUltima()">
-                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_hum_t<?= $i ?>')" title="Clic: F.O. / LAVADO / Normal">F.O.</button>
-                            </div>
+                    <!-- Visualización de Humedad de Secadores (No se captura aquí; se consulta de calidad_humedad_secadores) -->
+                    <div class="p-3 mb-3 bg-white rounded-3 border shadow-sm">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark small">
+                                <i class="bi bi-moisture text-primary me-1"></i>Humedad en Secadores para la hora seleccionada:
+                            </span>
+                           
                         </div>
-                        <?php endfor; ?>
-                        
-                        <!-- Botones de F.O. para Velocidades -->
-                        <?php for($i=1; $i<=4; $i++): ?>
-                        <div>
-                            <label class="input-label">Vel T<?= $i ?></label>
-                            <div class="input-group input-group-sm shadow-sm rounded-2">
-                                <input type="number" step="0.01" name="vel_t<?= $i ?>" id="input_vel_t<?= $i ?>" class="form-control border-end-0" oninput="copiarVelocidadHZ()">
-                                <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_vel_t<?= $i ?>')" title="Clic: F.O. / LAVADO / Normal">F.O.</button>
+                        <div class="row g-2" id="grid-humedad-secadores-calidad">
+                            <?php for($s=1; $s<=4; $s++): ?>
+                            <div class="col-6 col-md-3">
+                                <div class="p-2 rounded-2 border text-center bg-light" id="box_hum_s<?= $s ?>">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge bg-dark rounded-pill px-2 py-0" style="font-size:0.7rem;">Secador <?= $s ?></span>
+                                        <span class="small text-muted" style="font-size:0.68rem;" id="time_hum_s<?= $s ?>">-</span>
+                                    </div>
+                                    <div class="fw-bold fs-6 font-monospace my-1" id="val_hum_s<?= $s ?>">-</div>
+                                    <div class="text-muted text-truncate" style="font-size:0.65rem;" id="op_hum_s<?= $s ?>">Sin datos</div>
+                                </div>
                             </div>
+                            <?php endfor; ?>
                         </div>
-                        <?php endfor; ?>
+                    </div>
+                    
+                    <!-- Entradas de Velocidades de Túneles -->
+                    <div class="mb-2">
+                        <span class="fw-bold text-dark small d-block mb-2">
+                            <i class="bi bi-speedometer2 text-success me-1"></i>Velocidad de Túneles (m/h):
+                        </span>
+                        <div class="input-grid input-grid-compact">
+                            <?php for($i=1; $i<=4; $i++): ?>
+                            <div>
+                                <label class="input-label">Vel T<?= $i ?></label>
+                                <div class="input-group input-group-sm shadow-sm rounded-2">
+                                    <input type="number" step="0.01" name="vel_t<?= $i ?>" id="input_vel_t<?= $i ?>" class="form-control border-end-0" oninput="copiarVelocidadHZ()">
+                                    <button type="button" class="input-group-text input-group-text-fo" onclick="ponerFO('input_vel_t<?= $i ?>')" title="Clic: F.O. / LAVADO / Normal">F.O.</button>
+                                </div>
+                            </div>
+                            <?php endfor; ?>
+                        </div>
                     </div>
                     
                     <h6 class="section-title text-success text-darken mt-4 pt-2 border-top border-success border-opacity-25">
@@ -303,7 +335,6 @@ include 'includes/header.php';
                                     <th>HZ<br><span class="text-secondary fw-normal opacity-75" style="font-size:0.60rem;">(S1:45-52|S2:52.8|S3-4:>16-18)</span></th>
                                     <th>RC 9<br><span class="text-secondary fw-normal opacity-75" style="font-size:0.60rem;">(&lt; 10)</span></th>
                                     <th>H. Penúlt.<br><span class="text-secondary fw-normal opacity-75" style="font-size:0.60rem;">(&lt; 12)</span></th>
-                                    <th>H. Última<br><span class="text-secondary fw-normal opacity-75" style="font-size:0.60rem;">(&lt; 12)</span></th>
                                     <th>Alt. Gall.<br><span class="text-secondary fw-normal opacity-75" style="font-size:0.60rem;">(6.5-7.5)</span></th>
                                     <th>HR Cám 5<br><span class="text-secondary fw-normal opacity-75" style="font-size:0.60rem;">(&lt; 36)</span></th>
                                     <th style="width: 140px;">Textura<br><span class="text-secondary fw-normal opacity-75" style="font-size:0.60rem;">(Firme)</span></th>
@@ -328,11 +359,6 @@ include 'includes/header.php';
                                     </td>
                                     <td data-label="RC 9"><input type="number" step="0.01" name="rc9_<?= $s ?>" id="rc9_<?= $s ?>" class="input-secador" placeholder="0.0"></td>
                                     <td data-label="Hum. Penúlt."><input type="number" step="0.01" name="hum_penultima_<?= $s ?>" id="hum_penultima_<?= $s ?>" class="input-secador" placeholder="0.0"></td>
-                                    
-                                    <td data-label="Hum. Última">
-                                        <input type="text" name="hum_ultima_<?= $s ?>" id="hum_ultima_<?= $s ?>" class="input-secador bg-light fw-bold text-secondary" placeholder="0.0" readonly>
-                                    </td>
-                                    
                                     <td data-label="Alt. Galleta"><input type="number" step="0.01" name="altura_galleta_<?= $s ?>" id="altura_galleta_<?= $s ?>" class="input-secador" placeholder="0.0"></td>
                                     <td data-label="HR Cám. 5"><input type="number" step="0.01" name="hum_relativa_cam5_<?= $s ?>" id="hum_relativa_cam5_<?= $s ?>" class="input-secador" placeholder="0.0"></td>
                                     <td data-label="Textura">
@@ -399,9 +425,9 @@ include 'includes/header.php';
         </form>
     </div>
 
-    <!-- SÁBANA MAESTRA LIMPIA -->
+    <!-- SÃBANA MAESTRA LIMPIA -->
     <?php
-    function renderTablaSabana($horas, $titulo, $icono, $badge, $manual_data, $conn_procesos, $conn_aveva, $fecha_seleccionada) {
+    function renderTablaSabana($horas, $titulo, $icono, $badge, $manual_data, $conn_procesos, $conn_aveva, $fecha_seleccionada, $calidad_humedad_data = []) {
     ?>
     <h5 class="fw-bold text-dark mt-5 mb-3 d-flex align-items-center">
         <i class="bi <?= $icono ?> text-primary me-2 fs-4"></i> <?= $titulo ?> 
@@ -429,12 +455,12 @@ include 'includes/header.php';
                     <th colspan="2" class="bg-light text-dark">Pre-Concentrado</th>
                     <th colspan="2" class="bg-light text-dark">Concentrado</th>
                     
-                    <th colspan="4" class="bg-light text-dark">HUMEDAD</th>
+                    <th colspan="4" class="bg-light text-dark" title="Humedad oficial vinculada desde progel_procesos.calidad_humedad_secadores"><i class="bi bi-droplet-half text-info me-1"></i>HUMEDAD SECADORES</th>
                     <th colspan="4" class="bg-light text-dark">VELOCIDAD</th>
                     
                     <th colspan="2" class="bg-light text-dark">Vot. Activos</th>
                     <th colspan="8" class="bg-light text-dark">Flujo votators</th>
-                    <th colspan="2" class="bg-light text-dark">Solidos Conc.</th>
+                    <th colspan="2" class="bg-light text-dark">Sólidos Conc.</th>
                     <th colspan="6" class="bg-light text-dark">Kg entregados</th>
                 </tr>
                 <tr>
@@ -446,7 +472,10 @@ include 'includes/header.php';
                     <th class="text-muted">Obj</th><th>Real</th>
                     <th class="text-muted">Obj</th><th>Real</th>
                     
-                    <th>T1</th><th>T2</th><th>T3</th><th>T4</th>
+                    <th title="Secador 1">S1</th>
+                    <th title="Secador 2">S2</th>
+                    <th title="Secador 3">S3</th>
+                    <th title="Secador 4">S4</th>
                     <th>T1</th><th>T2</th><th>T3</th><th>T4</th>
                     
                     <th class="text-muted">Obj</th><th>Real</th>
@@ -557,10 +586,32 @@ include 'includes/header.php';
                     <td class="text-muted bg-light">6k-7k</td> 
                     <td class="fw-bold border-end border-2 bg-light"><?= $pv('caldo_concentrado') ?></td>
                     
-                    <td class="fw-bold <?= $color_estado($pv('hum_t1')) ?>"><?= $pv('hum_t1') ?></td>
-                    <td class="fw-bold <?= $color_estado($pv('hum_t2')) ?>"><?= $pv('hum_t2') ?></td>
-                    <td class="fw-bold <?= $color_estado($pv('hum_t3')) ?>"><?= $pv('hum_t3') ?></td>
-                    <td class="fw-bold border-end border-2 <?= $color_estado($pv('hum_t4')) ?>"><?= $pv('hum_t4') ?></td>
+                    <?php for ($s = 1; $s <= 4; $s++): 
+                        $info_s = $calidad_humedad_data[$hora][$s] ?? null;
+                        $borde_end = ($s === 4) ? 'border-end border-2' : '';
+                        $hum_fallback = $pv('hum_t' . $s);
+                        if (!$info_s && $hum_fallback !== '-') {
+                            $es_fo_fb = (strtoupper(trim($hum_fallback)) === 'F.O.') ? 1 : 0;
+                            $info_s = ['estado_fo' => $es_fo_fb, 'hum_ultima' => $hum_fallback, 'hora' => $hora, 'operador' => 'SUP_captura_produccion'];
+                        }
+                        if (!$info_s):
+                    ?>
+                        <td class="text-muted bg-light <?= $borde_end ?>" title="Secador <?= $s ?>: Sin registro">-</td>
+                    <?php elseif (!empty($info_s['estado_fo'])): 
+                        $tt = "Secador $s: F.O. (Fuera de Operación)\nHora muestra: " . ($info_s['hora'] ?? '-') . "\nOperador: " . ($info_s['operador'] ?? '-');
+                    ?>
+                        <td class="fw-bold semaforo-r-sabana <?= $borde_end ?>" title="<?= htmlspecialchars($tt) ?>">
+                            <span class="badge bg-danger text-white px-2 py-1">F.O.</span>
+                        </td>
+                    <?php else: 
+                        $val_num = is_numeric($info_s['hum_ultima']) ? number_format((float)$info_s['hum_ultima'], 2) : ($info_s['hum_ultima'] ?? '-');
+                        $clase_sem = getHumedadSemaforoClass($s, $val_num, 0);
+                        $tt = "Secador $s\nHumedad: {$val_num}%\nHora muestra: " . ($info_s['hora'] ?? '-') . "\nOperador: " . ($info_s['operador'] ?? '-');
+                    ?>
+                        <td class="fw-bold <?= $clase_sem ?> <?= $borde_end ?>" title="<?= htmlspecialchars($tt) ?>">
+                            <?= $val_num ?>
+                        </td>
+                    <?php endif; endfor; ?>
                     
                     <td class="fw-bold <?= $color_estado($pv('vel_t1')) ?>"><?= $pv('vel_t1') ?></td>
                     <td class="fw-bold <?= $color_estado($pv('vel_t2')) ?>"><?= $pv('vel_t2') ?></td>
@@ -597,9 +648,9 @@ include 'includes/header.php';
 
     <?php 
         if ($turno_seleccionado == 'diurno') {
-            renderTablaSabana($horas_diurno, 'Turno Diurno', 'bi-brightness-high-fill', '07:00 a 18:00', $manual_data, $conn_procesos, $conn_aveva, $fecha_seleccionada);
+            renderTablaSabana($horas_diurno, 'Turno Diurno', 'bi-brightness-high-fill', '07:00 a 18:00', $manual_data, $conn_procesos, $conn_aveva, $fecha_seleccionada, $calidad_humedad_data);
         } else { 
-            renderTablaSabana($horas_nocturno, 'Turno Nocturno', 'bi-moon-stars-fill', '19:00 a 06:00', $manual_data, $conn_procesos, $conn_aveva, $fecha_seleccionada);
+            renderTablaSabana($horas_nocturno, 'Turno Nocturno', 'bi-moon-stars-fill', '19:00 a 06:00', $manual_data, $conn_procesos, $conn_aveva, $fecha_seleccionada, $calidad_humedad_data);
         }
     ?>
 
@@ -607,7 +658,7 @@ include 'includes/header.php';
 
 <script>
     // =======================================================
-    // 1. CÁLCULO DE PRODUCCIÓN TEÓRICA
+    // 1. CÃLCULO DE PRODUCCIÓN TEÓRICA
     // =======================================================
     function calcularTeoricos() {
         const flujoTotalInput = document.getElementById('flujo_votators_total');
@@ -703,26 +754,7 @@ include 'includes/header.php';
     }
 
     // =======================================================
-    // AUTO-COPIAR HUMEDAD DE TÚNEL A H. ÚLTIMA DE SECADOR
-    // =======================================================
-    function copiarHumedadUltima() {
-        for(let i=1; i<=4; i++) {
-            let h_ultima = document.getElementById('hum_ultima_' + i);
-            let hum_tunel = document.getElementById('input_hum_t' + i);
-            
-            if(h_ultima && hum_tunel && (!document.getElementById('estado_fo_' + i) || !document.getElementById('estado_fo_' + i).checked)) {
-                let hVal = (hum_tunel.value || '').trim().toUpperCase();
-                if ((hVal === 'F.O.' || hVal === 'LAVADO') && h_ultima.tagName === 'INPUT' && h_ultima.type === 'number') {
-                    h_ultima.type = 'text'; 
-                }
-                h_ultima.value = hum_tunel.value; 
-                aplicarColorTiempoReal(h_ultima);
-            }
-        }
-    }
-
-    // =======================================================
-    // CÁLCULO DE EFICIENCIA POR REGLA DE TRES
+    // CÃLCULO DE EFICIENCIA POR REGLA DE TRES
     // =======================================================
     function calcularEficiencia() {
         const kgRealesInput = document.getElementById('cap_kg_reales');
@@ -821,7 +853,6 @@ include 'includes/header.php';
 
         if(idInput.includes('flujo_v')) sumarFlujoVotators();
         if(idInput.includes('vel_t')) copiarVelocidadHZ();
-        if(idInput.includes('hum_t')) copiarHumedadUltima();
         if(idInput === 'input_solidos_brix') calcularTeoricos();
     }
 
@@ -844,7 +875,6 @@ include 'includes/header.php';
 
         const camposVotators = ['input_flujo_v1', 'input_flujo_v2', 'input_flujo_v3', 'input_flujo_v4', 'input_flujo_v5', 'input_flujo_v6', 'input_solidos_brix'];
         const camposTuneles = [
-            'input_hum_t1', 'input_hum_t2', 'input_hum_t3', 'input_hum_t4',
             'input_vel_t1', 'input_vel_t2', 'input_vel_t3', 'input_vel_t4'
         ];
         const camposTodos = [...camposVotators, ...camposTuneles];
@@ -952,13 +982,12 @@ include 'includes/header.php';
         // Recalcular todo
         sumarFlujoVotators();
         copiarVelocidadHZ();
-        copiarHumedadUltima();
         calcularTeoricos();
     }
 
     function aplicarColorTiempoReal(elemento) {
         let valStr = elemento.value.trim();
-        let esCampoAuto = elemento.id.includes('flujo_secado') || elemento.id.includes('hz_secado') || elemento.id.includes('hum_ultima');
+        let esCampoAuto = elemento.id.includes('flujo_secado') || elemento.id.includes('hz_secado');
         
         // F.O. automático
         if (valStr === 'F.O.') {
@@ -1046,17 +1075,6 @@ include 'includes/header.php';
                 else bgColor = colorRojo;
             }
         }
-        else if (idCompleto.includes('hum_ultima')) {
-            if (secador === 1 || secador === 2) {
-                if (val < 12) bgColor = colorVerde;
-                else if (val >= 12 && val <= 15) { bgColor = colorAmarillo; textColor = '#000'; }
-                else bgColor = colorRojo;
-            } else { 
-                if (val < 10) bgColor = colorVerde;
-                else if (val >= 10 && val <= 12) { bgColor = colorAmarillo; textColor = '#000'; }
-                else bgColor = colorRojo;
-            }
-        }
         else if (idCompleto.includes('rc9')) {
             if (secador === 2) {
                 if (val < 10) bgColor = colorVerde;
@@ -1090,7 +1108,7 @@ include 'includes/header.php';
 
     function toggleFOSecador(s, estado = 'F.O.') {
         const isFO = document.getElementById('estado_fo_' + s).checked;
-        const campos = ['flujo_secado_', 'hz_secado_', 'rc9_', 'hum_penultima_', 'hum_ultima_', 'altura_galleta_', 'hum_relativa_cam5_', 'textura_secado_'];
+        const campos = ['flujo_secado_', 'hz_secado_', 'rc9_', 'hum_penultima_', 'altura_galleta_', 'hum_relativa_cam5_', 'textura_secado_'];
         
         campos.forEach(prefix => {
             const el = document.getElementById(prefix + s);
@@ -1116,11 +1134,11 @@ include 'includes/header.php';
                     }
                     el.style.fontWeight = 'bold';
 
-                    if (prefix !== 'flujo_secado_' && prefix !== 'hz_secado_' && prefix !== 'hum_ultima_') {
+                    if (prefix !== 'flujo_secado_' && prefix !== 'hz_secado_') {
                         el.readOnly = true; 
                     }
                 } else {
-                    if (prefix !== 'flujo_secado_' && prefix !== 'hz_secado_' && prefix !== 'hum_ultima_') {
+                    if (prefix !== 'flujo_secado_' && prefix !== 'hz_secado_') {
                         el.readOnly = false; 
                     }
                     if(el.tagName === 'INPUT' && prefix !== 'textura_secado_') el.type = 'number'; 
@@ -1136,7 +1154,6 @@ include 'includes/header.php';
                     
                     if (prefix === 'flujo_secado_') sumarFlujoVotators();
                     else if (prefix === 'hz_secado_') copiarVelocidadHZ();
-                    else if (prefix === 'hum_ultima_') copiarHumedadUltima();
                     else aplicarColorTiempoReal(el); 
                 }
             }
@@ -1171,6 +1188,7 @@ include 'includes/header.php';
         });
 
         const datosGuardados = <?= json_encode($manual_data) ?>;
+        const datosHumedadCalidad = <?= json_encode($calidad_humedad_data) ?>;
         const formInputs = Array.from(document.querySelectorAll('#form-captura-manual input, #form-captura-manual select, #form-captura-manual textarea, #form-captura-manual button'));
         const botonGuardar = document.getElementById('btn-guardar-hora');
         const mensajeBloqueo = document.getElementById('mensaje-bloqueo');
@@ -1185,11 +1203,11 @@ include 'includes/header.php';
                     else el.value = '';
                     
                     if (el.id !== 'cap_eficiencia' && el.id !== 'flujo_votators_total' && el.id !== 'cap_kg_teoricos') el.readOnly = false;
-                    if (el.id && (el.id.includes('flujo_secado') || el.id.includes('hz_secado') || el.id.includes('hum_ultima'))) el.readOnly = true; 
+                    if (el.id && (el.id.includes('flujo_secado') || el.id.includes('hz_secado'))) el.readOnly = true; 
                     
                     if (el.tagName === 'BUTTON') el.disabled = false;
                     
-                    if (el.tagName === 'INPUT' && el.id && (el.id.startsWith('input_') || el.id.includes('secado') || el.id.includes('hum_') || el.id.includes('rc9_') || el.id.includes('altura_'))) {
+                    if (el.tagName === 'INPUT' && el.id && (el.id.startsWith('input_') || el.id.includes('secado') || el.id.includes('rc9_') || el.id.includes('altura_'))) {
                         if(el.id !== 'cap_kg_teoricos') el.type = 'number';
                     }
                 }
@@ -1202,12 +1220,44 @@ include 'includes/header.php';
 
             const idsBotonesLaterales = [
                 'input_flujo_v1', 'input_flujo_v2', 'input_flujo_v3', 'input_flujo_v4', 'input_flujo_v5', 'input_flujo_v6', 'input_solidos_brix',
-                'input_hum_t1', 'input_hum_t2', 'input_hum_t3', 'input_hum_t4',
                 'input_vel_t1', 'input_vel_t2', 'input_vel_t3', 'input_vel_t4'
             ];
             idsBotonesLaterales.forEach(id => actualizarBotonLateral(id, ''));
 
             inputsSecadores.forEach(input => aplicarColorTiempoReal(input));
+
+            // Actualizar tarjetas de Humedad de Secadores desde Calidad para esta hora
+            const humHora = datosHumedadCalidad[horaSeleccionada] || {};
+            for (let s = 1; s <= 4; s++) {
+                const box = document.getElementById('box_hum_s' + s);
+                const valEl = document.getElementById('val_hum_s' + s);
+                const timeEl = document.getElementById('time_hum_s' + s);
+                const opEl = document.getElementById('op_hum_s' + s);
+                if (!box || !valEl) continue;
+
+                const info = humHora[s];
+                if (info) {
+                    if (info.estado_fo == 1) {
+                        box.className = 'p-2 rounded-2 border text-center bg-danger-subtle border-danger';
+                        valEl.innerHTML = '<span class="badge bg-danger text-white px-2 py-1">F.O.</span>';
+                    } else {
+                        const vNum = parseFloat(info.hum_ultima);
+                        const vStr = !isNaN(vNum) ? vNum.toFixed(2) + '%' : (info.hum_ultima || '-');
+                        let bgClass = 'bg-success-subtle border-success text-success';
+                        if ((s <= 2 && vNum > 15) || (s > 2 && vNum > 12)) bgClass = 'bg-danger-subtle border-danger text-danger';
+                        else if ((s <= 2 && vNum >= 12) || (s > 2 && vNum >= 10)) bgClass = 'bg-warning-subtle border-warning text-dark';
+                        box.className = 'p-2 rounded-2 border text-center ' + bgClass;
+                        valEl.textContent = vStr;
+                    }
+                    if (timeEl) timeEl.textContent = info.hora ? info.hora.substring(0, 5) + ' hrs' : '';
+                    if (opEl) opEl.textContent = info.operador ? 'Nóm: ' + info.operador : 'Calidad';
+                } else {
+                    box.className = 'p-2 rounded-2 border text-center bg-light text-muted';
+                    valEl.textContent = '-';
+                    if (timeEl) timeEl.textContent = '';
+                    if (opEl) opEl.textContent = 'Sin registro';
+                }
+            }
 
             if (datosDeLaHora) {
                 mensajeBloqueo.style.display = 'block';
@@ -1255,7 +1305,7 @@ include 'includes/header.php';
                             }
                             
                             if (ds.estado_fo != 1) {
-                                let fields = ['flujo_secado_', 'hz_secado_', 'rc9_', 'hum_penultima_', 'hum_ultima_', 'altura_galleta_', 'hum_relativa_cam5_', 'textura_secado_'];
+                                let fields = ['flujo_secado_', 'hz_secado_', 'rc9_', 'hum_penultima_', 'altura_galleta_', 'hum_relativa_cam5_', 'textura_secado_'];
                                 fields.forEach(f => {
                                     let element = document.getElementById(f+s);
                                     let fieldName = f.replace('_secado_', '').replace('_'+s, ''); 
@@ -1277,8 +1327,6 @@ include 'includes/header.php';
                 // Aseguramos que la matriz de abajo se sincronice con todo lo que cargó de la BD
                 sumarFlujoVotators();
                 copiarVelocidadHZ();
-                copiarHumedadUltima();
-
             } else {
                 mensajeBloqueo.style.display = 'none';
                 botonGuardar.disabled = false;
@@ -1338,4 +1386,35 @@ include 'includes/header.php';
     document.addEventListener('scroll', iniciarTemporizador);
 </script>
 
+<!-- Modal para Exportar Excel -->
+<div class="modal fade" id="exportarExcelModal" tabindex="-1" aria-labelledby="exportarExcelModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="exportarExcelModalLabel"><i class="bi bi-file-earmark-excel"></i> Exportar Reporte Maestro</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <form action="exportaciones/excel_maestro.php" method="POST">
+          <div class="modal-body">
+            <p class="text-muted">Selecciona el rango de fechas para generar tu archivo de Excel.</p>
+            <div class="mb-3">
+                <label for="fecha_inicio" class="form-label fw-bold">Fecha de inicio</label>
+                <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="<?= date('Y-m-d') ?>" required>
+            </div>
+            <div class="mb-3">
+                <label for="fecha_fin" class="form-label fw-bold">Fecha de fin</label>
+                <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="<?= date('Y-m-d') ?>" required>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-download"></i> Descargar Excel</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <?php include 'includes/footer.php'; ?>
+
+

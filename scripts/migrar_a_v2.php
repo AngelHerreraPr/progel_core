@@ -1,13 +1,10 @@
 <?php
 /**
  * ====================================================================
- * SCRIPT DE MIGRACIÓN Y TRANSFORMACIÓN ETL: PROGEL_CORES -> PROGEL_V2
+ * SCRIPT DE MIGRACIÓN Y TRANSFORMACIÓN ETL: progel_core -> PROGEL_V2
  * ====================================================================
- * Este script lee todos los datos históricos de 'progel_cores' y los
- * pivota / estructura en la nueva base de datos limpia 'progel_v2'.
- * 
- * NOTA: NO modifica, no borra ni altera nada en 'progel_cores'.
- * Es un proceso seguro de solo lectura en la BD origen.
+ * Este script lee todos los datos históricos de 'progel_core' y los
+ * pivota / estructura en la nueva base de datos limpia 'Progel_coreV2'.
  */
 
 declare(ticks = 1);
@@ -17,25 +14,34 @@ ini_set('memory_limit', '512M');
 set_time_limit(0);
 
 echo "====================================================================\n";
-echo "  INICIANDO MIGRACIÓN AUTOMÁTICA: progel_cores -> Progel_coreV2\n";
+echo "  INICIANDO MIGRACIÓN AUTOMÁTICA: progel_core -> Progel_coreV2\n";
 echo "====================================================================\n\n";
 
 $host = '127.0.0.1';
 $user = 'root';
-$pass = '';
+$passwords = ['Pr0gel+2024', ''];
+$pdoCores = null;
+$pdoV2 = null;
 
-try {
-    $pdoCores = new PDO("mysql:host=$host;dbname=progel_cores;charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+foreach ($passwords as $pass) {
+    try {
+        $pdoCores = new PDO("mysql:host=$host;dbname=progel_core;charset=utf8mb4", $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
 
-    $pdoV2 = new PDO("mysql:host=$host;dbname=Progel_coreV2;charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
-} catch (PDOException $e) {
-    die("ERROR al conectar a MySQL: " . $e->getMessage() . "\n");
+        $pdoV2 = new PDO("mysql:host=$host;dbname=Progel_coreV2;charset=utf8mb4", $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+        break;
+    } catch (PDOException $e) {
+        continue;
+    }
+}
+
+if (!$pdoCores || !$pdoV2) {
+    die("ERROR al conectar a MySQL con los usuarios/contraseñas configuradas.\n");
 }
 
 echo "[OK] Conectado exitosamente a ambas bases de datos.\n";
@@ -59,8 +65,78 @@ $tablasV2 = [
 foreach ($tablasV2 as $tbl) {
     $pdoV2->exec("TRUNCATE TABLE `$tbl`;");
 }
+
+// Asegurar columnas de producto Votator en bitacora_chillers_votator
+$colsVotatorExtra = [
+    'temp_entrada_producto_c',
+    'temp_salida_producto_c',
+    'delta_temp_producto_c',
+    'flujo',
+    'textura_visual',
+    'lubricacion_votator'
+];
+$existingColsVot = $pdoV2->query("SHOW COLUMNS FROM `bitacora_chillers_votator`")->fetchAll(PDO::FETCH_COLUMN);
+foreach ($colsVotatorExtra as $colExtra) {
+    if (!in_array($colExtra, $existingColsVot)) {
+        $pdoV2->exec("ALTER TABLE `bitacora_chillers_votator` ADD COLUMN `$colExtra` VARCHAR(50) NULL DEFAULT NULL");
+    }
+}
+
+// Asegurar que las columnas de medición en Progel_coreV2 acepten tanto valores numéricos como estados operativos ('F.O.', 'LAVADO', 'MTTO') sin convertirlos en 0.00
+$alterCols = [
+    'bitacora_chillers_votator' => [
+        'temp_inyeccion_maestro_c', 'temp_retorno_maestro_c', 'delta_temp_maestro_c',
+        'temp_inyeccion_esclavo_c', 'temp_retorno_esclavo_c', 'delta_temp_esclavo_c',
+        'presion_inyeccion_glicol_psi',
+        'temp_entrada_producto_c', 'temp_salida_producto_c', 'delta_temp_producto_c',
+        'flujo', 'textura_visual', 'lubricacion_votator'
+    ],
+    'bitacora_chillers_normales' => [
+        'concentracion_glicol_porc', 'nivel_glicol_porc', 'frecuencia_bombas_hz', 'presion_bombas_glicol_psi',
+        'presion_baja_ch1_psi', 'presion_alta_ch1_psi', 'presion_baja_ch2_psi', 'presion_alta_ch2_psi',
+        'presion_baja_ch3_psi', 'presion_alta_ch3_psi', 'presion_baja_ch4_psi', 'presion_alta_ch4_psi',
+        'presion_baja_ch5_psi', 'presion_alta_ch5_psi', 'presion_baja_ch6_psi', 'presion_alta_ch6_psi',
+        'presion_baja_ch7_psi', 'presion_alta_ch7_psi',
+        'temp_in_ch1_2_c', 'temp_out_ch1_2_c', 'delta_temp_ch1_2_c',
+        'temp_in_ch3_4_c', 'temp_out_ch3_4_c', 'delta_temp_ch3_4_c',
+        'temp_in_ch5_6_c', 'temp_out_ch5_6_c', 'delta_temp_ch5_6_c',
+        'temp_in_ch7_c', 'temp_out_ch7_c', 'delta_temp_ch7_c'
+    ],
+    'bitacora_compresores' => [
+        'humedad_ambiental_porc', 'temp_ambiental_c', 'horas_trabajadas'
+    ],
+    'bitacora_concentradores' => [
+        'solidos_entrada_porc', 'flujo_entrada_lpm', 'presion_vapor_psi', 'vacio_mmhg',
+        'temp_salida_grenetina_c', 'solidos_salida_porc', 'flujo_salida_lpm',
+        'temp_caldo_entrada_c', 'temp_agua_in_condensador_c', 'temp_agua_out_condensador_c',
+        'presion_vacio_kg_cm2'
+    ],
+    'bitacora_secadores' => [
+        'flujo_l_min', 'velocidad_banda_m_h', 'frecuencia_hz', 'altura_galleta_cm',
+        'humedad_churro_recamara_5_porc', 'humedad_churro_penultima_porc',
+        'humedad_relativa_recamara_5_porc', 'humedad_producto_final_porc',
+        'temp_recamara_1_c', 'temp_recamara_2_c', 'temp_recamara_3_c', 'temp_recamara_4_c'
+    ],
+    'produccion_reporte_maestro' => [
+        'consumo_cuero_kg', 'flujo_votator_1_lh', 'flujo_votator_2_lh', 'flujo_votator_3_lh',
+        'flujo_votator_4_lh', 'flujo_votator_5_lh', 'flujo_votator_6_lh', 'solidos_brix',
+        'humedad_tunel_1_porc', 'humedad_tunel_2_porc', 'humedad_tunel_3_porc',
+        'humedad_tunel_4_porc', 'humedad_tunel_5_porc',
+        'velocidad_tunel_1_mh', 'velocidad_tunel_2_mh', 'velocidad_tunel_3_mh', 'velocidad_tunel_4_mh',
+        'kg_teoricos', 'kg_reales', 'rechazo_kg', 'remoler_kg', 'eficiencia_porcentaje'
+    ]
+];
+
+foreach ($alterCols as $tbl => $cols) {
+    $modParts = [];
+    foreach ($cols as $c) {
+        $modParts[] = "MODIFY COLUMN `$c` VARCHAR(50) NULL DEFAULT NULL";
+    }
+    $pdoV2->exec("ALTER TABLE `$tbl` " . implode(', ', $modParts));
+}
+
 $pdoV2->exec("SET FOREIGN_KEY_CHECKS = 1;");
-echo "[OK] Tablas de progel_v2 preparadas y limpias.\n\n";
+echo "[OK] Tablas de Progel_coreV2 preparadas y columnas optimizadas (VARCHAR para soportar F.O./LAVADO).\n\n";
 
 // --------------------------------------------------------------------
 // 1. MIGRAR CATÁLOGOS BASE
@@ -93,13 +169,14 @@ foreach ($equipos as $eq) {
     elseif ($eq['tipo'] === 'compresor') $tipo = 'compresor';
     elseif ($eq['tipo'] === 'concentrador') $tipo = 'concentrador';
     elseif ($eq['tipo'] === 'secador') $tipo = 'secador';
+    elseif (strpos((string)$eq['tipo'], 'membrana') !== false) $tipo = 'membrana';
 
     $codigo = 'EQ-' . str_pad($eq['id'], 3, '0', STR_PAD_LEFT);
     $stmtEquipo->execute([$eq['id'], $codigo, $eq['nombre'], $eq['area_id'], $tipo]);
 }
 echo "   -> " . count($equipos) . " equipos en catálogo migrados.\n";
 
-// 1.4 Usuarios
+// 1.5 Usuarios
 $usuarios = $pdoCores->query("SELECT nomina, nombre, rol, zona_asignada FROM usuarios")->fetchAll();
 $stmtUsuario = $pdoV2->prepare("INSERT INTO usuarios (nomina, nombre_completo, rol, zona_asignada, activo) VALUES (?, ?, ?, ?, 1)");
 foreach ($usuarios as $u) {
@@ -116,7 +193,7 @@ echo "   -> " . count($usuarios) . " usuarios migrados.\n\n";
 // --------------------------------------------------------------------
 echo "2. Migrando sábana maestra de producción (sup_captura_produccion)...\n";
 $sqlProd = "
-    INSERT INTO Progel_coreV2.produccion_reporte_maestro (
+    INSERT IGNORE INTO Progel_coreV2.produccion_reporte_maestro (
         id, fecha, hora, consumo_cuero_kg, cocedores_manual, caldo_pre_uf, pre_concentrado, caldo_concentrado,
         votators_activos, flujo_votator_1_lh, flujo_votator_2_lh, flujo_votator_3_lh, flujo_votator_4_lh,
         flujo_votator_5_lh, flujo_votator_6_lh, solidos_brix, humedad_tunel_1_porc, humedad_tunel_2_porc,
@@ -155,7 +232,7 @@ $sqlProd = "
         NULLIF(eficiencia, ''),
         NULLIF(acciones, ''),
         fecha_registro_real
-    FROM progel_cores.sup_captura_produccion
+    FROM progel_core.sup_captura_produccion
 ";
 $filasProd = $pdoV2->exec($sqlProd);
 echo "   -> $filasProd registros de reporte maestro migrados exitosamente.\n\n";
@@ -165,177 +242,10 @@ echo "   -> $filasProd registros de reporte maestro migrados exitosamente.\n\n";
 // --------------------------------------------------------------------
 echo "3. Migrando y pivotando bitácoras horarias de máquinas...\n";
 
-// Mapeo exhaustivo de parametro_id -> [tabla_destino, columna_destino]
-$mapParametros = [
-    // Chillers Votator (81: 1 al 4, 82: 5 al 7)
-    342 => ['bitacora_chillers_votator', 'temp_inyeccion_maestro_c'],
-    343 => ['bitacora_chillers_votator', 'temp_retorno_maestro_c'],
-    344 => ['bitacora_chillers_votator', 'delta_temp_maestro_c'],
-    345 => ['bitacora_chillers_votator', 'temp_inyeccion_esclavo_c'],
-    346 => ['bitacora_chillers_votator', 'temp_retorno_esclavo_c'],
-    347 => ['bitacora_chillers_votator', 'delta_temp_esclavo_c'],
-    348 => ['bitacora_chillers_votator', 'presion_inyeccion_glicol_psi'],
+require_once __DIR__ . '/../includes/mapeo_v2.php';
+$mapParametros = $GLOBALS['MAP_PARAMETROS_V2'];
 
-    349 => ['bitacora_chillers_votator', 'temp_inyeccion_maestro_c'],
-    350 => ['bitacora_chillers_votator', 'temp_retorno_maestro_c'],
-    351 => ['bitacora_chillers_votator', 'delta_temp_maestro_c'],
-    352 => ['bitacora_chillers_votator', 'temp_inyeccion_esclavo_c'],
-    353 => ['bitacora_chillers_votator', 'temp_retorno_esclavo_c'],
-    354 => ['bitacora_chillers_votator', 'delta_temp_esclavo_c'],
-    355 => ['bitacora_chillers_votator', 'presion_inyeccion_glicol_psi'],
-
-    // Chillers Normales (91: 1 al 4, 92: 5 al 7)
-    356 => ['bitacora_chillers_normales', 'concentracion_glicol_porc'],
-    357 => ['bitacora_chillers_normales', 'presion_baja_ch1_psi'],
-    358 => ['bitacora_chillers_normales', 'presion_alta_ch1_psi'],
-    359 => ['bitacora_chillers_normales', 'presion_baja_ch2_psi'],
-    360 => ['bitacora_chillers_normales', 'presion_alta_ch2_psi'],
-    361 => ['bitacora_chillers_normales', 'presion_baja_ch3_psi'],
-    362 => ['bitacora_chillers_normales', 'presion_alta_ch3_psi'],
-    363 => ['bitacora_chillers_normales', 'presion_baja_ch4_psi'],
-    364 => ['bitacora_chillers_normales', 'presion_alta_ch4_psi'],
-    365 => ['bitacora_chillers_normales', 'rutina_limpieza_condensadores'],
-    366 => ['bitacora_chillers_normales', 'rutina_limpieza_filtros_bombas'],
-    367 => ['bitacora_chillers_normales', 'rutina_limpieza_filtros_glicol'],
-    368 => ['bitacora_chillers_normales', 'rutina_limpieza_filtros_succion'],
-    369 => ['bitacora_chillers_normales', 'rutina_alarmas'],
-    370 => ['bitacora_chillers_normales', 'nivel_glicol_porc'],
-    371 => ['bitacora_chillers_normales', 'frecuencia_bombas_hz'],
-    372 => ['bitacora_chillers_normales', 'temp_in_ch1_2_c'],
-    373 => ['bitacora_chillers_normales', 'temp_out_ch1_2_c'],
-    374 => ['bitacora_chillers_normales', 'delta_temp_ch1_2_c'],
-    375 => ['bitacora_chillers_normales', 'temp_in_ch3_4_c'],
-    376 => ['bitacora_chillers_normales', 'temp_out_ch3_4_c'],
-    377 => ['bitacora_chillers_normales', 'delta_temp_ch3_4_c'],
-    378 => ['bitacora_chillers_normales', 'presion_bombas_glicol_psi'],
-
-    399 => ['bitacora_chillers_normales', 'concentracion_glicol_porc'],
-    400 => ['bitacora_chillers_normales', 'presion_baja_ch5_psi'],
-    401 => ['bitacora_chillers_normales', 'presion_alta_ch5_psi'],
-    402 => ['bitacora_chillers_normales', 'presion_baja_ch6_psi'],
-    403 => ['bitacora_chillers_normales', 'presion_alta_ch6_psi'],
-    404 => ['bitacora_chillers_normales', 'presion_baja_ch7_psi'],
-    405 => ['bitacora_chillers_normales', 'presion_alta_ch7_psi'],
-    406 => ['bitacora_chillers_normales', 'rutina_limpieza_condensadores'],
-    407 => ['bitacora_chillers_normales', 'rutina_limpieza_filtros_bombas'],
-    408 => ['bitacora_chillers_normales', 'rutina_limpieza_filtros_glicol'],
-    409 => ['bitacora_chillers_normales', 'rutina_limpieza_filtros_succion'],
-    410 => ['bitacora_chillers_normales', 'nivel_glicol_porc'],
-    411 => ['bitacora_chillers_normales', 'frecuencia_bombas_hz'],
-    412 => ['bitacora_chillers_normales', 'temp_in_ch5_6_c'],
-    413 => ['bitacora_chillers_normales', 'temp_out_ch5_6_c'],
-    414 => ['bitacora_chillers_normales', 'delta_temp_ch5_6_c'],
-    415 => ['bitacora_chillers_normales', 'temp_in_ch7_c'],
-    416 => ['bitacora_chillers_normales', 'temp_out_ch7_c'],
-    417 => ['bitacora_chillers_normales', 'delta_temp_ch7_c'],
-    418 => ['bitacora_chillers_normales', 'presion_bombas_glicol_psi'],
-    419 => ['bitacora_chillers_normales', 'rutina_alarmas'],
-
-    // Compresores (12: 30 HP, 13: 50 HP)
-    420 => ['bitacora_compresores', 'humedad_ambiental_porc'],
-    421 => ['bitacora_compresores', 'temp_ambiental_c'],
-    422 => ['bitacora_compresores', 'limpieza_filtros'],
-    423 => ['bitacora_compresores', 'horas_trabajadas'],
-    424 => ['bitacora_compresores', 'inspeccion_alarmas'],
-
-    425 => ['bitacora_compresores', 'humedad_ambiental_porc'],
-    426 => ['bitacora_compresores', 'temp_ambiental_c'],
-    427 => ['bitacora_compresores', 'limpieza_filtros'],
-    428 => ['bitacora_compresores', 'horas_trabajadas'],
-    429 => ['bitacora_compresores', 'inspeccion_alarmas'],
-
-    // Concentradores (14, 15, 16, 17)
-    238 => ['bitacora_concentradores', 'solidos_entrada_porc'],
-    239 => ['bitacora_concentradores', 'flujo_entrada_lpm'],
-    240 => ['bitacora_concentradores', 'presion_vapor_psi'],
-    241 => ['bitacora_concentradores', 'vacio_mmhg'],
-    242 => ['bitacora_concentradores', 'temp_salida_grenetina_c'],
-    243 => ['bitacora_concentradores', 'solidos_salida_porc'],
-    244 => ['bitacora_concentradores', 'flujo_salida_lpm'],
-
-    245 => ['bitacora_concentradores', 'solidos_entrada_porc'],
-    246 => ['bitacora_concentradores', 'flujo_entrada_lpm'],
-    247 => ['bitacora_concentradores', 'presion_vapor_psi'],
-    248 => ['bitacora_concentradores', 'vacio_mmhg'],
-    249 => ['bitacora_concentradores', 'temp_salida_grenetina_c'],
-    250 => ['bitacora_concentradores', 'solidos_salida_porc'],
-    251 => ['bitacora_concentradores', 'flujo_salida_lpm'],
-
-    252 => ['bitacora_concentradores', 'solidos_entrada_porc'],
-    253 => ['bitacora_concentradores', 'flujo_entrada_lpm'],
-    254 => ['bitacora_concentradores', 'presion_vapor_psi'],
-    255 => ['bitacora_concentradores', 'vacio_mmhg'],
-    256 => ['bitacora_concentradores', 'temp_salida_grenetina_c'],
-    257 => ['bitacora_concentradores', 'solidos_salida_porc'],
-    258 => ['bitacora_concentradores', 'flujo_salida_lpm'],
-
-    259 => ['bitacora_concentradores', 'solidos_entrada_porc'],
-    260 => ['bitacora_concentradores', 'flujo_entrada_lpm'],
-    261 => ['bitacora_concentradores', 'presion_vapor_psi'],
-    262 => ['bitacora_concentradores', 'vacio_mmhg'],
-    263 => ['bitacora_concentradores', 'temp_salida_grenetina_c'],
-    264 => ['bitacora_concentradores', 'solidos_salida_porc'],
-    265 => ['bitacora_concentradores', 'flujo_salida_lpm'],
-
-    // Concentrador Invertido (18)
-    266 => ['bitacora_concentradores', 'temp_caldo_entrada_c'],
-    267 => ['bitacora_concentradores', 'flujo_entrada_lpm'],
-    268 => ['bitacora_concentradores', 'solidos_entrada_porc'],
-    269 => ['bitacora_concentradores', 'flujo_salida_lpm'],
-    270 => ['bitacora_concentradores', 'presion_vapor_psi'],
-    271 => ['bitacora_concentradores', 'presion_vacio_kg_cm2'],
-    272 => ['bitacora_concentradores', 'solidos_salida_porc'],
-    273 => ['bitacora_concentradores', 'temp_agua_in_condensador_c'],
-    274 => ['bitacora_concentradores', 'temp_agua_out_condensador_c'],
-    275 => ['bitacora_concentradores', 'flujo_salida_lpm'],
-
-    // Secadores (21, 22, 23, 24)
-    450 => ['bitacora_secadores', 'flujo_l_min'],
-    451 => ['bitacora_secadores', 'velocidad_banda_m_h'],
-    452 => ['bitacora_secadores', 'altura_galleta_cm'],
-    453 => ['bitacora_secadores', 'humedad_churro_recamara_5_porc'],
-    454 => ['bitacora_secadores', 'humedad_churro_penultima_porc'],
-    455 => ['bitacora_secadores', 'humedad_relativa_recamara_5_porc'],
-    456 => ['bitacora_secadores', 'humedad_producto_final_porc'],
-    457 => ['bitacora_secadores', 'textura_galleta'],
-
-    458 => ['bitacora_secadores', 'flujo_l_min'],
-    459 => ['bitacora_secadores', 'velocidad_banda_m_h'],
-    460 => ['bitacora_secadores', 'altura_galleta_cm'],
-    461 => ['bitacora_secadores', 'humedad_churro_recamara_5_porc'],
-    462 => ['bitacora_secadores', 'humedad_churro_penultima_porc'],
-    463 => ['bitacora_secadores', 'humedad_relativa_recamara_5_porc'],
-    464 => ['bitacora_secadores', 'humedad_producto_final_porc'],
-    465 => ['bitacora_secadores', 'textura_galleta'],
-
-    466 => ['bitacora_secadores', 'flujo_l_min'],
-    467 => ['bitacora_secadores', 'frecuencia_hz'],
-    468 => ['bitacora_secadores', 'altura_galleta_cm'],
-    469 => ['bitacora_secadores', 'humedad_churro_recamara_5_porc'],
-    470 => ['bitacora_secadores', 'humedad_churro_penultima_porc'],
-    471 => ['bitacora_secadores', 'humedad_relativa_recamara_5_porc'],
-    472 => ['bitacora_secadores', 'humedad_producto_final_porc'],
-    473 => ['bitacora_secadores', 'temp_recamara_1_c'],
-    474 => ['bitacora_secadores', 'temp_recamara_2_c'],
-    475 => ['bitacora_secadores', 'temp_recamara_3_c'],
-    476 => ['bitacora_secadores', 'temp_recamara_4_c'],
-    477 => ['bitacora_secadores', 'textura_galleta'],
-
-    478 => ['bitacora_secadores', 'humedad_churro_recamara_5_porc'],
-    479 => ['bitacora_secadores', 'altura_galleta_cm'],
-    480 => ['bitacora_secadores', 'frecuencia_hz'],
-    481 => ['bitacora_secadores', 'flujo_l_min'],
-    482 => ['bitacora_secadores', 'humedad_churro_penultima_porc'],
-    483 => ['bitacora_secadores', 'humedad_relativa_recamara_5_porc'],
-    484 => ['bitacora_secadores', 'humedad_producto_final_porc'],
-    485 => ['bitacora_secadores', 'temp_recamara_1_c'],
-    486 => ['bitacora_secadores', 'temp_recamara_2_c'],
-    487 => ['bitacora_secadores', 'temp_recamara_3_c'],
-    488 => ['bitacora_secadores', 'temp_recamara_4_c'],
-    489 => ['bitacora_secadores', 'textura_galleta'],
-];
-
-// Nombres legibles de equipos
+// Equipos activos en la migración (excluyendo IDs duplicados de la primera semana 1, 2, 30, 50 que ya están en 91, 92, 12, 13)
 $nombresEquipos = [
     12 => 'Compresor 30 HP',
     13 => 'Compresor 50 HP',
@@ -350,11 +260,32 @@ $nombresEquipos = [
     24 => 'Secador 4',
     81 => 'Chillers Votator (1 al 4)',
     82 => 'Chillers Votator (5 al 7)',
+    83 => 'Producto Votator',
+    84 => 'Votator 1',
+    85 => 'Votator 2',
+    86 => 'Votator 3',
+    87 => 'Votator 4',
+    88 => 'Votator 5',
+    89 => 'Votator 6',
     91 => 'Chillers Normales (1 al 4)',
     92 => 'Chillers Normales (5 al 7)'
 ];
 
-// Extraer todas las lecturas de progel_cores
+// Detectar si 'progel_core' o 'progel_core' tiene más lecturas
+$dbLecturas = 'progel_core';
+try {
+    $count1 = (int)$pdoCores->query("SELECT COUNT(*) FROM progel_core.bitacora_lecturas")->fetchColumn();
+    $count2 = (int)$pdoCores->query("SELECT COUNT(*) FROM progel_core.bitacora_lecturas")->fetchColumn();
+    if ($count1 > $count2) {
+        $dbLecturas = 'progel_core';
+        echo "   -> Seleccionada BD '$dbLecturas' por contener más registros ($count1 vs $count2).\n";
+    } else {
+        echo "   -> Seleccionada BD '$dbLecturas' ($count2 registros).\n";
+    }
+} catch (Exception $e) {
+    echo "   -> Usando base de datos '$dbLecturas' por defecto.\n";
+}
+
 $query = "
     SELECT 
         b.id,
@@ -366,8 +297,8 @@ $query = "
         b.fecha_registro,
         b.lote,
         e.nombre AS equipo_nombre
-    FROM bitacora_lecturas b
-    LEFT JOIN equipos e ON b.equipo_id = e.id
+    FROM {$dbLecturas}.bitacora_lecturas b
+    LEFT JOIN {$dbLecturas}.equipos e ON b.equipo_id = e.id
     ORDER BY b.equipo_id, b.fecha_registro ASC
 ";
 
@@ -400,7 +331,7 @@ while ($row = $stmtLecturas->fetch()) {
         $dt = new DateTime($timestamp);
         $sesiones[$key] = [
             'equipo_id' => $eqId,
-            'equipo_nombre' => $row['equipo_nombre'] ?? $nombresEquipos[$eqId],
+            'equipo_nombre' => $nombresEquipos[$eqId],
             'fecha' => $dt->format('Y-m-d'),
             'hora' => (int)$dt->format('G'),
             'operador_nomina' => $nomina,
@@ -412,15 +343,8 @@ while ($row = $stmtLecturas->fetch()) {
         ];
     }
 
-    $columna = $mapParametros[$pId][1];
-    $val = trim($row['valor_capturado']);
-    
-    // Si la columna es decimal, validamos valor numérico
-    if (is_numeric($val)) {
-        $sesiones[$key]['valores'][$columna] = (float)$val;
-    } else {
-        $sesiones[$key]['valores'][$columna] = $val !== '' ? $val : null;
-    }
+    $val = trim((string)$row['valor_capturado']);
+    $sesiones[$key]['valores'][$columna] = ($val !== '') ? $val : null;
 
     if (!empty($row['observaciones']) && empty($sesiones[$key]['observaciones'])) {
         $sesiones[$key]['observaciones'] = $row['observaciones'];
@@ -432,9 +356,9 @@ while ($row = $stmtLecturas->fetch()) {
 
 echo "   -> Total lecturas leídas: $totalLecturasLeidas\n";
 echo "   -> Total sesiones agrupadas para insertar: " . count($sesiones) . "\n";
-echo "   -> Lecturas históricas de pruebas omitidas: $lecturasIgnoradas\n\n";
+echo "   -> Lecturas duplicadas de primera semana omitidas: $lecturasIgnoradas\n\n";
 
-// Insertar en progel_v2
+// Insertar en Progel_coreV2
 $contadores = [
     'bitacora_chillers_votator' => 0,
     'bitacora_chillers_normales' => 0,
@@ -488,11 +412,11 @@ foreach ($sesiones as $s) {
 
 $pdoV2->commit();
 
-echo "4. Resumen de registros insertados en tablas horizontales de progel_v2:\n";
+echo "4. Resumen de registros insertados en tablas horizontales de Progel_coreV2:\n";
 foreach ($contadores as $tbl => $count) {
     echo "   * $tbl: $count filas horarias completas\n";
 }
 
 echo "\n====================================================================\n";
-echo "  ¡MIGRACIÓN Y TRANSFORMACIÓN A PROGEL_V2 COMPLETADA CON ÉXITO!      \n";
+echo "  ¡MIGRACIÓN Y TRANSFORMACIÓN A PROGEL_COREV2 COMPLETADA CON ÉXITO!\n";
 echo "====================================================================\n";

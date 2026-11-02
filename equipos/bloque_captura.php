@@ -1,5 +1,5 @@
 <?php
-// Progel_corese/equipos/bloque_captura.php
+// progel_coree/equipos/bloque_captura.php
 // ROUTER INTELIGENTE DE PANTALLAS
 
 if (in_array($equipo_id, [81, 82])) {
@@ -17,6 +17,10 @@ if (in_array($equipo_id, [81, 82])) {
 } elseif (in_array($equipo_id, [14, 15, 16, 17, 18])) {
     // 🍯 Concentradores
     include __DIR__ . '/bloque_concentradores_todos.php';
+
+} elseif ($equipo_id == 100) {
+    // 🧪 Sistema de Membranas (4 Etapas - 13 Paquetes)
+    include __DIR__ . '/bloque_membranas.php';
 
 } elseif (in_array($equipo_id, [21, 22, 23, 24])) {
     // 💨 Secadores (1 al 4)

@@ -1,8 +1,10 @@
 <?php
 // Footer común: scripts y cierre de html
+$base_path = $base_path ?? (in_array(basename(dirname($_SERVER['SCRIPT_FILENAME'] ?? '')), ['tools', 'admin', 'acciones', 'exportaciones']) ? '../' : '');
 ?>
 </main>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= $base_path ?>assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="<?= $base_path ?>assets/vendor/sweetalert2/sweetalert2.all.min.js"></script>
 
 <!-- ANIMACIONES PERSONALIZADAS PARA LAS ALERTAS -->
 <style>
@@ -73,6 +75,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    
+    // Cierre automático de sesión tras 5 minutos (300,000 ms) de inactividad
+    const TIEMPO_LIMITE_INACTIVIDAD_MS = 5 * 60 * 1000;
+    let temporizadorInactividad;
+
+    function cerrarSesionPorInactividad() {
+        window.location.href = '<?= $base_path ?>acciones/logout.php?timeout=1';
+    }
+
+    function reiniciarTemporizadorInactividad() {
+        clearTimeout(temporizadorInactividad);
+        temporizadorInactividad = setTimeout(cerrarSesionPorInactividad, TIEMPO_LIMITE_INACTIVIDAD_MS);
+    }
+
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evento => {
+        document.addEventListener(evento, reiniciarTemporizadorInactividad, { passive: true });
+    });
+
+    reiniciarTemporizadorInactividad();
 });
 </script>
 

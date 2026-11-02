@@ -17,6 +17,24 @@ $zona = mysqli_fetch_assoc($result_zona);
 if(!$zona) {     
     header("Location: index.php");     
     exit(); 
+}
+
+// Control de acceso a la zona según las zonas asignadas al usuario
+$rol_u = strtoupper(trim($_SESSION['rol'] ?? ''));
+$zona_u = strtoupper(trim($_SESSION['zona'] ?? 'TODAS'));
+$es_admin_jefe = in_array($rol_u, ['ADMIN', 'JEFATURA']);
+
+if (!$es_admin_jefe && $zona_u !== 'TODAS') {
+    $nom_z = strtoupper($zona['nombre']);
+    $tiene_acceso = false;
+    if (strpos($nom_z, 'BLANCA') !== false && strpos($zona_u, 'BLANCA') !== false) $tiene_acceso = true;
+    if (strpos($nom_z, 'GRIS') !== false && strpos($zona_u, 'GRIS') !== false) $tiene_acceso = true;
+    if (strpos($nom_z, 'NEGRA') !== false && strpos($zona_u, 'NEGRA') !== false) $tiene_acceso = true;
+
+    if (!$tiene_acceso) {
+        header("Location: index.php?error=zona_no_autorizada");
+        exit();
+    }
 } 
 
 include 'includes/header.php'; 
@@ -74,9 +92,14 @@ include 'includes/header.php';
             <h2 class="fw-bold text-dark m-0">Zona: <?= htmlspecialchars($zona['nombre']) ?></h2>         
             <span class="text-muted small">Selecciona el equipo o módulo que deseas capturar.</span>     
         </div>     
-        <a href="index.php" class="btn btn-outline-dark fw-bold shadow-sm rounded-pill px-4">
-            <i class="bi bi-arrow-left me-1"></i> Volver al Mapa
-        </a> 
+        <div class="d-flex gap-2">
+            <a href="reporte_general.php?zona=<?= $zona_id ?>" class="btn btn-primary fw-bold shadow-sm rounded-pill px-3">
+                <i class="bi bi-grid-3x3-gap me-1"></i> Reporte General
+            </a>
+            <a href="index.php" class="btn btn-outline-dark fw-bold shadow-sm rounded-pill px-4">
+                <i class="bi bi-arrow-left me-1"></i> Volver al Mapa
+            </a> 
+        </div> 
     </div> 
 
     <div class="panel-equipos mb-5">     
@@ -113,6 +136,8 @@ include 'includes/header.php';
                     $votator_ids_unificados = [84, 85, 86, 87, 88, 89];                                   
                     $votator_maestro_viejo_id = [8];                  
                     $has_rendered_votator_maestro_viejo = false;                 
+                    $has_rendered_membranas = false;                 
+                    $has_rendered_secadores_unificado = false;                 
                     
                     while ($eq = mysqli_fetch_assoc($equipos_result)) {                     
                         $id_eq = $eq['id'];                     
@@ -132,10 +157,10 @@ include 'includes/header.php';
                             if (!$has_rendered_votator_unificado) {                 
                     ?>                             
                                 <div class="col-md-6 col-lg-4">                                  
-                                    <a href="captura.php?id=84" class="equipo-card-base border-start border-4 border-danger">                                     
+                                    <a href="http://localhost/sis_extraccion/index.php?view=votators" class="equipo-card-base border-start border-4 border-danger">                                     
                                         <span class="badge bg-danger text-white mb-2 px-3 py-1 fs-6">Bloque Unificado</span>                                     
                                         <span class="fw-bold fs-6 text-dark text-center">Votators</span>                                     
-                                        <small class="text-muted mt-1 text-center">Captura y Control de Línea</small>                                 
+                                        <small class="text-muted mt-1 text-center">Captura y Control de Línea <i class="bi bi-box-arrow-up-right ms-1 text-primary"></i></small>                                 
                                     </a>                             
                                 </div>                 
                     <?php                             
@@ -172,17 +197,19 @@ include 'includes/header.php';
                             continue;                     
                         }                     
                         
-                        if (in_array($id_eq, [21, 22, 23, 24])) {                         
-                            if ($id_eq == 22 || $id_eq == 24) continue;                         
-                            $titulo = ($id_eq == 21) ? 'Secadores 1 y 2' : 'Secadores 3 y 4';                 
+                        if (in_array($id_eq, [21, 22, 23, 24]) || (strpos($n_low, 'secador') !== false)) {                         
+                            if (!$has_rendered_secadores_unificado) {                 
                     ?>                         
                             <div class="col-md-6 col-lg-4">                              
-                                <a href="captura.php?id=<?= $id_eq ?>" class="equipo-card-base border-start border-4 border-success">                                 
-                                    <span class="fw-bold fs-6 text-dark text-center"><?= $titulo ?></span>                                 
-                                    <small class="text-muted mt-1 text-center">Zona Blanca - Control</small>                             
+                                <a href="http://localhost/sis_extraccion/index.php?view=secadores" class="equipo-card-base border-start border-4 border-success">                                 
+                                    <span class="badge bg-success text-white mb-2 px-3 py-1 fs-6">Bloque Unificado</span>
+                                    <span class="fw-bold fs-6 text-dark text-center">Secadores (1 al 4)</span>                                 
+                                    <small class="text-muted mt-1 text-center">Zona Blanca - Control y Captura <i class="bi bi-box-arrow-up-right ms-1 text-primary"></i></small>                             
                                 </a>                         
                             </div>                 
                     <?php                         
+                                $has_rendered_secadores_unificado = true;
+                            }
                             continue;                     
                         }                                         
                         
@@ -211,6 +238,22 @@ include 'includes/header.php';
                             continue;                     
                         }                     
                         
+                        if ($id_eq == 100 || strpos($n_low, 'membrana') !== false) {
+                            if (!$has_rendered_membranas) {
+                    ?>
+                                <div class="col-md-6 col-lg-4">
+                                    <a href="captura.php?id=100" class="equipo-card-base border-start border-4 border-info">
+                                        <span class="badge bg-primary text-white mb-2 px-3 py-1 fs-6">4 Etapas · 13 Paquetes</span>
+                                        <span class="fw-bold fs-6 text-dark text-center"><i class="bi bi-filter-circle text-primary me-1"></i> Sistema de Membranas</span>
+                                        <small class="text-muted mt-1 text-center">Zona Gris - Ultrafiltración</small>
+                                    </a>
+                                </div>
+                    <?php
+                                $has_rendered_membranas = true;
+                            }
+                            continue;
+                        }
+
                         $link_destino = "captura.php?id=" . $id_eq;                     
                         $patron = '/Bit[ a]cora.*2\s*HORAS/i';                     
                         $nombre_equipo_limpio = trim(preg_replace($patron, '', $nombre_eq));                 
@@ -221,7 +264,21 @@ include 'includes/header.php';
                             </a>                     
                         </div>                 
                     <?php                 
-                    }                 
+                    }
+
+                    // Fallback permanente: Si es Zona Gris y no se ha mostrado la tarjeta de Membranas en esta área de concentradores, mostrarla siempre
+                    if ($zona_id == 2 && !$has_rendered_membranas && $a['id'] == 20) {
+                        $has_rendered_membranas = true;
+                    ?>
+                        <div class="col-md-6 col-lg-4">
+                            <a href="captura.php?id=100" class="equipo-card-base border-start border-4 border-info">
+                                <span class="badge bg-primary text-white mb-2 px-3 py-1 fs-6">4 Etapas · 13 Paquetes</span>
+                                <span class="fw-bold fs-6 text-dark text-center"><i class="bi bi-filter-circle text-primary me-1"></i> Sistema de Membranas</span>
+                                <small class="text-muted mt-1 text-center">Zona Gris - Ultrafiltración</small>
+                            </a>
+                        </div>
+                    <?php
+                    }
                     ?>             
                 </div>         
         <?php              

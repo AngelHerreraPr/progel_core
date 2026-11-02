@@ -1,11 +1,11 @@
 <?php
-// Progel_cores/exportar_chillers.php
+// progel_core/exportar_chillers.php
 session_start();
-include 'config/db.php';
+include_once __DIR__ . '/../config/db.php';
 
 // Validar que el usuario haya iniciado sesión
 if (!isset($_SESSION['nomina'])) {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit();
 }
 

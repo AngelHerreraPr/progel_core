@@ -1,13 +1,13 @@
 <?php
-// Progel_cores/editor_rapido.php
+// progel_core/editor_rapido.php
 session_start();
 date_default_timezone_set('America/Mazatlan');
-include 'config/db.php';
+include_once __DIR__ . '/../config/db.php';
 
 // PROTECCIÓN DE ACCESO POR ROL
 $rol_actual = $_SESSION['rol'] ?? '';
 if (!in_array($rol_actual, ['ADMIN', 'SUPERVISOR', 'JEFATURA'])) {
-    header("Location: index.php");
+    header("Location: ../index.php");
     exit();
 }
 
@@ -37,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['nip_acceso'])) {
 
 // 3. PANTALLA DE BLOQUEO (Si no ha puesto el NIP)
 if (!isset($_SESSION['editor_desbloqueado']) || $_SESSION['editor_desbloqueado'] !== true) {
-    include 'includes/header.php';
+    include __DIR__ . '/../includes/header.php';
     ?>
     <style>
         body { background-color: #eef2f7; }
@@ -67,13 +67,13 @@ if (!isset($_SESSION['editor_desbloqueado']) || $_SESSION['editor_desbloqueado']
                     <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm rounded-pill mb-2">
                         Desbloquear <i class="bi bi-unlock-fill ms-1"></i>
                     </button>
-                    <a href="index.php" class="btn btn-light border w-100 fw-bold rounded-pill text-muted">Cancelar</a>
+                    <a href="../index.php" class="btn btn-light border w-100 fw-bold rounded-pill text-muted">Cancelar</a>
                 </form>
             </div>
         </div>
     </div>
     <?php
-    include 'includes/footer.php';
+    include __DIR__ . '/../includes/footer.php';
     exit();
 }
 
@@ -122,7 +122,7 @@ if (mysqli_num_rows($res) > 0) {
     }
 }
 
-include 'includes/header.php';
+include __DIR__ . '/../includes/header.php';
 ?>
 
 <style>
@@ -291,7 +291,7 @@ include 'includes/header.php';
             </div>
             
             <a href="?bloquear=1" class="btn btn-danger btn-sm fw-bold shadow-sm px-3 mb-1"><i class="bi bi-lock-fill me-1"></i> Bloquear</a>
-            <a href="index.php" class="btn btn-dark btn-sm fw-bold shadow-sm px-3 mb-1"><i class="bi bi-house-door-fill me-1"></i> Inicio</a>
+            <a href="../index.php" class="btn btn-dark btn-sm fw-bold shadow-sm px-3 mb-1"><i class="bi bi-house-door-fill me-1"></i> Inicio</a>
         </form>
     </div>
 
@@ -403,4 +403,4 @@ function guardarEdicion(id, btn) {
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>

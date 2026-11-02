@@ -1,23 +1,75 @@
 <?php
-// Progel_cores/equipos/bloque_chillers.php
+// progel_core/equipos/bloque_chillers.php
 // MÓDULO EXCLUSIVO PARA CHILLERS VOTATOR (IDs 81 y 82) CON DOBLE DELTA AUTOMÁTICO
 
+include_once __DIR__ . '/../config/db_v2.php';
+include_once __DIR__ . '/../includes/mapeo_v2.php';
+
+$ids_objetivo = [81, 82];
+$ids_obj_str = implode(',', $ids_objetivo);
+
+// 🚀 OPTIMIZACIÓN: Pre-cargar lecturas y parámetros en lote
+$params_por_chiller_v = [];
+$q_all_params_cv = mysqli_query($conn, "SELECT * FROM parametros WHERE equipo_id IN ($ids_obj_str) ORDER BY equipo_id ASC, id ASC");
+if ($q_all_params_cv) {
+    while ($p_row = mysqli_fetch_assoc($q_all_params_cv)) {
+        $params_por_chiller_v[$p_row['equipo_id']][] = $p_row;
+    }
+}
+
+$v2_rows_por_chiller_v = [];
+if (isset($conn_v2) && $conn_v2) {
+    $q_v2 = "SELECT * FROM bitacora_chillers_votator 
+             WHERE fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+             ORDER BY id DESC";
+    $res_v2 = mysqli_query($conn_v2, $q_v2);
+    if ($res_v2) {
+        while ($r = mysqli_fetch_assoc($res_v2)) {
+            if (!isset($v2_rows_por_chiller_v[$r['equipo_nombre']])) {
+                $v2_rows_por_chiller_v[$r['equipo_nombre']] = $r;
+            }
+        }
+    }
+}
+
+$lecturas_locales_cv = [];
+$q_loc = mysqli_query($conn, "
+    SELECT parametro_id, valor_capturado, observaciones 
+    FROM bitacora_lecturas 
+    WHERE equipo_id IN ($ids_obj_str) 
+    AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
+    ORDER BY id ASC
+");
+if ($q_loc) {
+    while ($r = mysqli_fetch_assoc($q_loc)) {
+        $lecturas_locales_cv[$r['parametro_id']] = $r;
+    }
+}
+
 if (!function_exists('obtenerRegistroChillerVotatorID')) {
-    function obtenerRegistroChillerVotatorID($conn, $param_id) {
-        include_once __DIR__ . '/../config/db_v2.php';
-        include_once __DIR__ . '/../includes/mapeo_v2.php';
-        global $conn_v2;
-        if (isset($conn_v2) && $conn_v2) {
-            $v2 = obtenerLecturaRecienteV2($conn_v2, $param_id);
-            if ($v2) return $v2;
+    function obtenerRegistroChillerVotatorID($conn, $param_id, $eq_id = 0, $eq_nombre = '') {
+        global $v2_rows_por_chiller_v, $lecturas_locales_cv;
+
+        // 1. Revisar caché en memoria V2
+        if (!empty($eq_nombre) && isset($v2_rows_por_chiller_v[$eq_nombre])) {
+            $v2_row = $v2_rows_por_chiller_v[$eq_nombre];
+            if (isset($GLOBALS['MAP_PARAMETROS_V2'][$param_id])) {
+                $col = $GLOBALS['MAP_PARAMETROS_V2'][$param_id][1];
+                if (isset($v2_row[$col]) && $v2_row[$col] !== null && $v2_row[$col] !== '') {
+                    return [
+                        'valor_capturado' => $v2_row[$col],
+                        'observaciones' => $v2_row['observaciones'] ?? ''
+                    ];
+                }
+            }
         }
 
-        $q = "SELECT valor_capturado, observaciones FROM bitacora_lecturas 
-              WHERE parametro_id = $param_id 
-              AND fecha_registro >= DATE_SUB(NOW(), INTERVAL 90 MINUTE) 
-              ORDER BY id DESC LIMIT 1";
-        $res = mysqli_query($conn, $q);
-        return mysqli_fetch_assoc($res);
+        // 2. Revisar caché en memoria local
+        if (isset($lecturas_locales_cv[$param_id])) {
+            return $lecturas_locales_cv[$param_id];
+        }
+
+        return null;
     }
 }
 
@@ -103,7 +155,7 @@ $equipo_id_solicitado = intval($_GET['id'] ?? 0);
             $es_active = ($equipo_id_solicitado == $eq_id) || ($equipo_id_solicitado == 0 && $index == 0);
         ?>
             <div class="tab-pane fade <?= $es_active ? 'show active' : '' ?>" id="tab-content-chiller-v-<?= $eq_id ?>" role="tabpanel">
-                <form action="guardar.php" method="POST">
+                <form action="acciones/guardar.php" method="POST">
                     <input type="hidden" name="equipo_id" value="<?= $eq_id ?>">
                     <input type="hidden" name="frecuencia_tab" value="CADA 2 HORAS">
                     <input type="hidden" name="numero_nomina" value="<?= htmlspecialchars($_SESSION['nomina'] ?? '') ?>">
@@ -136,13 +188,9 @@ $equipo_id_solicitado = intval($_GET['id'] ?? 0);
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $stmt_p = mysqli_prepare($conn, "SELECT * FROM parametros WHERE equipo_id = ? ORDER BY id ASC");
-                                    mysqli_stmt_bind_param($stmt_p, "i", $eq_id);
-                                    mysqli_stmt_execute($stmt_p);
-                                    $params = mysqli_stmt_get_result($stmt_p);
-
-                                    while ($p = mysqli_fetch_assoc($params)):
-                                        $reg = obtenerRegistroChillerVotatorID($conn, $p['id']);
+                                    $params_chiller = $params_por_chiller_v[$eq_id] ?? [];
+                                    foreach ($params_chiller as $p):
+                                        $reg = obtenerRegistroChillerVotatorID($conn, $p['id'], $eq_id, $eq_nombre);
                                         $rb = $p['rojo_bajo']; $ab = $p['amarillo_bajo'];
                                         $aa = $p['amarillo_alto']; $ra = $p['rojo_alto'];
                                         $n = $p['nombre_parametro'];
@@ -233,7 +281,7 @@ $equipo_id_solicitado = intval($_GET['id'] ?? 0);
                                             <?php endif; ?>
                                         </td>
                                     </tr>
-                                    <?php endwhile; ?>
+                                    <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>

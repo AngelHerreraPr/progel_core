@@ -218,9 +218,21 @@ body {
 /* Grilla de Equipos y Tarjetas */
 .equipos-grid { 
     display: grid; 
-    grid-template-columns: repeat(2, 1fr); 
+    grid-template-columns: 1fr; 
     gap: 1.5rem; 
     align-items: start; 
+}
+
+/* Equipos con matriz ancha (como Sistema de Membranas) abarcan el 100% de la pantalla */
+.tarjeta-equipo[data-equipo-id="100"],
+.tarjeta-equipo-fullwidth {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+}
+
+.table-membranas-matriz {
+    width: 100% !important;
+    min-width: 100% !important;
 }
 
 .card-equipo { 
@@ -305,14 +317,269 @@ body {
     border-right: none; 
 }
 
-.table-matriz .parametro-nombre { 
-    font-weight: 800; 
-    color: #000; 
-    text-align: left; 
-    padding-left: 1rem !important; 
-    background: #f8fafc; 
-    border-right: 1px solid #e9ecef; 
-    white-space: nowrap; 
+/* ============================================================== */
+/* ESTILOS DEL REPORTE MATRIZ INDUSTRIAL - FORMATO SCADA / PLANTA */
+/* ============================================================== */
+.table-matriz {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    margin-bottom: 12px !important;
+    font-size: 0.8rem !important;
+    background: #ffffff !important;
+}
+
+.table-matriz th, .table-matriz td {
+    border: 1px solid #475569 !important;
+    padding: 5px 6px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    min-height: 35px !important;
+    height: auto !important;
+    white-space: nowrap !important;
+}
+
+.table-matriz thead tr.header-navy th {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.3px !important;
+}
+
+.table-matriz .parametro-nombre,
+.table-matriz .param-name { 
+    text-align: left !important; 
+    background: #f8fafc !important; 
+    font-weight: 700 !important; 
+    min-width: 210px !important;
+    width: 215px !important; 
+    max-width: 245px !important; 
+    padding: 6px 12px !important; 
+    font-size: 0.78rem !important; 
+    line-height: 1.2 !important; 
+    white-space: nowrap !important; 
+    overflow: hidden !important; 
+    text-overflow: ellipsis !important; 
+    color: #0f172a !important; 
+    border-right: 1px solid #475569 !important;
+}
+
+/* Encabezados de Rangos */
+.table-matriz thead th.th-rango-verde {
+    background-color: #2e8b57 !important;
+    color: #ffffff !important;
+    min-width: 105px !important;
+    width: 110px !important;
+    max-width: 130px !important;
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+}
+.table-matriz thead th.th-rango-amarillo {
+    background-color: #e49a32 !important;
+    color: #ffffff !important;
+    min-width: 118px !important;
+    width: 122px !important;
+    max-width: 145px !important;
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+}
+.table-matriz thead th.th-rango-rojo {
+    background-color: #c94436 !important;
+    color: #ffffff !important;
+    min-width: 118px !important;
+    width: 122px !important;
+    max-width: 145px !important;
+    padding: 6px 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+}
+
+/* Celdas de Desglose de Rangos */
+.col-rango-verde {
+    text-align: center !important;
+    background-color: #f0fdf4 !important;
+    color: #166534 !important;
+    font-weight: 800 !important;
+    min-width: 105px !important;
+    width: 110px !important;
+    max-width: 130px !important;
+    padding: 5px 8px !important;
+    font-size: 0.75rem !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    border-left: 1px solid #86efac !important;
+    border-right: 1px solid #86efac !important;
+}
+.col-rango-amarillo {
+    text-align: center !important;
+    background-color: #fffbeb !important;
+    color: #92400e !important;
+    font-weight: 800 !important;
+    min-width: 118px !important;
+    width: 122px !important;
+    max-width: 145px !important;
+    padding: 5px 8px !important;
+    font-size: 0.74rem !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    border-left: 1px solid #fde68a !important;
+    border-right: 1px solid #fde68a !important;
+}
+.col-rango-rojo {
+    text-align: center !important;
+    background-color: #fef2f2 !important;
+    color: #991b1b !important;
+    font-weight: 800 !important;
+    min-width: 118px !important;
+    width: 122px !important;
+    max-width: 145px !important;
+    padding: 5px 8px !important;
+    font-size: 0.74rem !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    border-left: 1px solid #fca5a5 !important;
+    border-right: 1px solid #fca5a5 !important;
+}
+
+.seccion-etapa-header td {
+    text-align: left !important;
+    padding: 6px 14px !important;
+    font-weight: 800 !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.03em !important;
+}
+
+/* Fila 1: Hora del Registro Exacta */
+.row-hora-registro td {
+    background-color: #ffffff !important;
+    border-bottom: 2px solid #475569 !important;
+    font-weight: 700;
+    font-size: 0.76rem;
+    color: #0f172a;
+}
+.row-hora-registro td.parametro-nombre,
+.row-hora-registro td.param-name {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-weight: 800 !important;
+}
+.hora-val-cell {
+    font-family: monospace;
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: #0f172a;
+    background-color: #ffffff !important;
+}
+
+/* CELDAS SÓLIDAS INDUSTRIALES (PINTADO COMPLETO DE CELDA COMO EN IMAGEN 2) */
+.cell-matrix {
+    font-weight: 800 !important;
+    font-size: 0.8rem !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    cursor: pointer !important;
+    transition: filter 0.15s ease, transform 0.1s ease !important;
+    user-select: none !important;
+}
+.cell-matrix:hover {
+    filter: brightness(1.12) !important;
+    outline: 2px solid #ffffff !important;
+    outline-offset: -2px !important;
+}
+
+.cell-matrix-verde,
+td.cell-matrix-verde {
+    background-color: #2e8b57 !important;
+    border: 1px solid #257447 !important;
+    color: #ffffff !important;
+}
+
+.cell-matrix-amarillo,
+td.cell-matrix-amarillo {
+    background-color: #e49a32 !important;
+    border: 1px solid #c47b1c !important;
+    color: #ffffff !important;
+}
+
+.cell-matrix-rojo,
+td.cell-matrix-rojo {
+    background-color: #c94436 !important;
+    border: 1px solid #a9362c !important;
+    color: #ffffff !important;
+}
+
+.cell-matrix-gris,
+td.cell-matrix-gris {
+    background-color: #64748b !important;
+    border: 1px solid #475569 !important;
+    color: #ffffff !important;
+}
+
+.cell-matrix-lavado,
+td.cell-matrix-lavado {
+    background-color: #0284c7 !important;
+    border: 1px solid #0369a1 !important;
+    color: #ffffff !important;
+}
+
+.cell-matrix-empty,
+td.cell-matrix-empty {
+    background-color: #ffffff !important;
+    color: #cbd5e1 !important;
+    cursor: default !important;
+}
+.cell-matrix-empty:hover {
+    filter: none !important;
+    outline: none !important;
+}
+
+/* Barra de Título del Equipo (Idéntica a Imagen 2) */
+.title-equipo {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-left: 5px solid #0284c7;
+    border-radius: 4px;
+}
+
+/* Celda de Observaciones Interactiva */
+.cell-obs-interactive {
+    cursor: pointer !important;
+    transition: all 0.15s ease-in-out !important;
+}
+.cell-obs-interactive:hover {
+    outline: 2px solid #e49a32 !important;
+    background-color: #fef08a !important;
+}
+
+.btn-captura {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.8rem;
+    border-radius: 30px;
+    background-color: #198754;
+    color: white;
+    text-decoration: none;
+    border: 1px solid #198754;
+}
+.btn-captura:hover {
+    background-color: #157347;
+    color: white;
 }
 
 .badge-valor { 
