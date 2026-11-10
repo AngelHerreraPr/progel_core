@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label class="form-label fw-bold text-secondary">Número de Nómina</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light"><i class="bi bi-person-badge"></i></span>
-                        <input type="number" name="nomina" class="form-control form-control-lg" placeholder="Ej. 12345" required autofocus>
+                        <input type="password" inputmode="numeric" name="nomina" class="form-control form-control-lg" placeholder="•••••" autocomplete="off" required autofocus>
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow-sm">

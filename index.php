@@ -216,7 +216,6 @@ switch ($rol_usuario) {
                 </span>
                 <span class="user-info-box">
                     <i class="bi bi-person-fill text-primary"></i> <?= htmlspecialchars($_SESSION['nombre'] ?? 'Usuario') ?>
-                    <span class="text-muted small">| Nómina: <?= htmlspecialchars($_SESSION['nomina'] ?? 'N/A') ?></span>
                 </span>
             </div>
             <h2 class="fw-black text-dark m-0" style="font-weight: 800; letter-spacing: -0.5px;">Mapa de Zonas y Módulos</h2>

@@ -115,9 +115,6 @@ while($g = mysqli_fetch_assoc($q_grupos)){
             <small class="text-muted">Zona Gris - Control Individual por Concentrador (Cada 2 Horas)</small>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <button type="button" class="btn btn-outline-dark btn-sm fw-bold" disabled>
-                Nómina: <span class="text-dark"><?= htmlspecialchars($_SESSION['nomina']) ?></span>
-            </button>
         </div>
     </div>
 

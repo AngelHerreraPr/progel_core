@@ -124,7 +124,7 @@ include 'includes/header.php';
                 
                 if (mysqli_num_rows($equipos_result) > 0) {         
             ?>             
-                <div class="d-flex align-items-center mb-3 mt-4">                 
+                <div class="d-flex align-items-center mb-3 mt-4">
                     <h5 class="text-secondary fw-bold m-0 text-uppercase" style="font-size: 0.9rem; letter-spacing: 0.5px;">                      
                         <i class="bi bi-diagram-3-fill text-primary me-2"></i> Área: <?= htmlspecialchars($a['nombre']) ?>                 
                     </h5>                 
@@ -153,11 +153,11 @@ include 'includes/header.php';
                             if (in_array($id_eq, [12, 13])) continue;                     
                         }                     
                         
-                        if (in_array($id_eq, $votator_ids_unificados) || (strpos($n_low, 'votator') !== false && strpos($n_low, 'chiller') === false && !in_array($id_eq, $votator_maestro_viejo_id))) {                         
+                        if (in_array($id_eq, $votator_ids_unificados) || (strpos($n_low, 'votator') !== false && strpos($n_low, 'chiller') === false)) {                         
                             if (!$has_rendered_votator_unificado) {                 
                     ?>                             
                                 <div class="col-md-6 col-lg-4">                                  
-                                    <a href="http://localhost/sis_extraccion/index.php?view=votators" class="equipo-card-base border-start border-4 border-danger">                                     
+                                    <a href="http://192.168.1.105/sis_extraccion/index.php?view=votators" class="equipo-card-base border-start border-4 border-danger">                                     
                                         <span class="badge bg-danger text-white mb-2 px-3 py-1 fs-6">Bloque Unificado</span>                                     
                                         <span class="fw-bold fs-6 text-dark text-center">Votators</span>                                     
                                         <small class="text-muted mt-1 text-center">Captura y Control de Línea <i class="bi bi-box-arrow-up-right ms-1 text-primary"></i></small>                                 
@@ -165,21 +165,6 @@ include 'includes/header.php';
                                 </div>                 
                     <?php                             
                                 $has_rendered_votator_unificado = true;                         
-                            }                         
-                            continue;                     
-                        }                     
-                        
-                        if (in_array($id_eq, $votator_maestro_viejo_id)) {                         
-                            if (!$has_rendered_votator_maestro_viejo) {                 
-                    ?>                             
-                                <div class="col-md-6 col-lg-4">                                  
-                                    <a href="captura.php?id=8" class="equipo-card-base border-start border-4 border-danger">                                     
-                                        <span class="fw-bold fs-6 text-dark text-center">Sistema Votator (Maestro Viejo)</span>                                     
-                                        <small class="text-muted mt-1 text-center">Control de Temperaturas</small>                                 
-                                    </a>                             
-                                </div>                 
-                    <?php                             
-                                $has_rendered_votator_maestro_viejo = true;                         
                             }                         
                             continue;                     
                         }                     
@@ -201,7 +186,7 @@ include 'includes/header.php';
                             if (!$has_rendered_secadores_unificado) {                 
                     ?>                         
                             <div class="col-md-6 col-lg-4">                              
-                                <a href="http://localhost/sis_extraccion/index.php?view=secadores" class="equipo-card-base border-start border-4 border-success">                                 
+                                <a href="http://192.168.1.105/sis_extraccion/index.php?view=secadores" class="equipo-card-base border-start border-4 border-success">                                 
                                     <span class="badge bg-success text-white mb-2 px-3 py-1 fs-6">Bloque Unificado</span>
                                     <span class="fw-bold fs-6 text-dark text-center">Secadores (1 al 4)</span>                                 
                                     <small class="text-muted mt-1 text-center">Zona Blanca - Control y Captura <i class="bi bi-box-arrow-up-right ms-1 text-primary"></i></small>                             
@@ -217,9 +202,10 @@ include 'includes/header.php';
                             if ($id_eq != 14) continue;                 
                     ?>                          
                             <div class="col-md-6 col-lg-4">                              
-                                <a href="captura.php?id=14" class="equipo-card-base border-start border-4 border-secondary">                                 
+                                <a href="http://192.168.1.105/sis_extraccion/index.php?view=concentradores" class="equipo-card-base border-start border-4 border-primary">                                 
+                                    <span class="badge bg-primary text-white mb-2 px-3 py-1 fs-6">Bloque Unificado</span>
                                     <span class="fw-bold fs-6 text-dark text-center">Concentradores (1 al 4 e Invertido)</span>                                 
-                                    <small class="text-muted mt-1 text-center">Zona Gris - Control General</small>                             
+                                    <small class="text-muted mt-1 text-center">Zona Gris - Control y Captura <i class="bi bi-box-arrow-up-right ms-1 text-primary"></i></small>                             
                                 </a>                         
                             </div>                 
                     <?php                         

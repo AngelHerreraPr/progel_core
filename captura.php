@@ -15,13 +15,19 @@ include 'includes/funciones.php';
 $tipo = $_GET['tipo'] ?? '';
 $equipo_id = intval($_GET['id'] ?? 0);
 
-// Redirección directa para Votators, Secadores y Concentradores al sistema externo Sis_Extracción
-if (in_array($equipo_id, [84, 85, 86, 87, 88, 89])) {
-    header("Location: http://localhost/sis_extraccion/index.php?view=votators");
+// Redirección directa para Votators, Secadores y Concentradores al sistema externo Sis_Extracción (registro antiguo de Votators obsoleto)
+if (in_array($equipo_id, [8, 83, 84, 85, 86, 87, 88, 89]) || strtolower($tipo) === 'votator') {
+    header("Location: http://192.168.1.105/sis_extraccion/index.php?view=votators");
     exit();
 }
 if (in_array($equipo_id, [21, 22, 23, 24])) {
-    header("Location: http://localhost/sis_extraccion/index.php?view=secadores");
+    header("Location: http://192.168.1.105/sis_extraccion/index.php?view=secadores");
+    exit();
+}
+if (in_array($equipo_id, [14, 15, 16, 17, 18])) {
+    $map_conc_ext = [14 => 9, 15 => 10, 16 => 11, 17 => 12, 18 => 13];
+    $ext_id = $map_conc_ext[$equipo_id] ?? 9;
+    header("Location: http://192.168.1.105/sis_extraccion/index.php?view=concentradores&equipo_id=$ext_id");
     exit();
 }
 
@@ -62,11 +68,11 @@ if (!$es_admin_jefe && $zona_u !== 'TODAS' && $equipo && !empty($equipo['zona'])
 include 'includes/header.php';
 ?>
 
-<div class="container-fluid py-4 px-4">
+<div class="container-fluid py-3 px-2 px-md-3 px-xl-4">
     <div class="d-flex justify-content-between align-items-center mb-4 bg-white p-3 rounded shadow-sm border-start border-5 border-primary">
         <div>
             <h2 class="m-0 fw-bold text-dark"><?= htmlspecialchars($nombre_equipo) ?></h2>
-            <small class="text-muted">Operador: <?= htmlspecialchars($_SESSION['nombre']) ?> (Nómina: <?= htmlspecialchars($_SESSION['nomina']) ?>)</small>
+            <small class="text-muted">Operador: <?= htmlspecialchars($_SESSION['nombre']) ?></small>
         </div>
         <a href="<?= !empty($equipo['zona_id']) ? 'zona.php?id=' . (int)$equipo['zona_id'] : 'index.php' ?>" class="btn btn-outline-secondary fw-bold">
             <i class="bi bi-arrow-left me-1"></i> <?= !empty($equipo['zona']) ? 'Volver a ' . htmlspecialchars($equipo['zona']) : 'Regresar al Mapa' ?>

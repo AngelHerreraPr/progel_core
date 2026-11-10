@@ -126,9 +126,6 @@ $equipo_id_solicitado = intval($_GET['id'] ?? 0);
             <small class="text-muted">Módulo de Temperaturas y Doble Delta (Maestro/Esclavo)</small>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <button type="button" class="btn btn-outline-dark btn-sm fw-bold" disabled>
-                <i class="bi bi-person-badge"></i> Nómina: <span class="text-dark"><?= htmlspecialchars($_SESSION['nomina']) ?></span>
-            </button>
         </div>
     </div>
 

@@ -200,9 +200,6 @@ if (empty($frecuencias)) $frecuencias = ['DIARIO'];
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar
                 </button>
             </div>
-            <button type="button" class="btn btn-outline-dark btn-sm fw-bold" disabled>
-                Nómina: <span class="text-dark"><?= htmlspecialchars($_SESSION['nomina']) ?></span>
-            </button>
             <a href="historial.php?id=<?= $equipo_id ?>" class="btn btn-secondary btn-sm fw-bold shadow-sm">
                 <i class="bi bi-clock-history me-1"></i> Historial
             </a>
@@ -256,7 +253,7 @@ if (empty($frecuencias)) $frecuencias = ['DIARIO'];
                                     <i class="bi bi-check-circle-fill me-2"></i> Registro Diario de Hoy (<?= date('d/m/Y') ?>) Completado
                                 </h6>
                                 <span class="text-secondary small">
-                                    Todos los parámetros diarios fueron capturados<?= !empty($meta_diario_hoy['hora']) ? " a las <strong>{$meta_diario_hoy['hora']}</strong>" : '' ?><?= !empty($meta_diario_hoy['operador']) ? " por Nómina <strong>{$meta_diario_hoy['operador']}</strong>" : '' ?>. Al cambiar de día operativo, se habilitará automáticamente la captura limpia del nuevo día.
+                                    Todos los parámetros diarios fueron capturados<?= !empty($meta_diario_hoy['hora']) ? " a las <strong>{$meta_diario_hoy['hora']}</strong>" : '' ?>. Al cambiar de día operativo, se habilitará automáticamente la captura limpia del nuevo día.
                                 </span>
                             </div>
                             <div class="mt-2 mt-md-0">
@@ -521,14 +518,26 @@ if (empty($frecuencias)) $frecuencias = ['DIARIO'];
                                             <td class="fw-bold ps-3 text-dark">
                                                 <div class="d-flex align-items-center justify-content-between">
                                                     <span><?= htmlspecialchars($p['nombre_parametro']) ?></span>
-                                                    <?php if ($tiene_registro): ?>
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2 small ms-2" title="Ya registrado en esta semana">
-                                                            <i class="bi bi-check-circle-fill me-1"></i>Registrado
-                                                        </span>
+                                                    <?php if ($p['tipo_dato'] != 'NUMERICO'): ?>
+                                                        <?php if ($tiene_registro && in_array(strtoupper(trim((string)$val_guardado)), ['1', 'SI', 'SÍ', 'OK', 'REALIZADA', 'CUMPLIDA', 'TRUE'])): ?>
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2 small ms-2">
+                                                                <i class="bi bi-check-circle-fill me-1"></i>Realizada
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle py-1 px-2 small ms-2">
+                                                                <i class="bi bi-x-circle-fill me-1"></i>No Realizada
+                                                            </span>
+                                                        <?php endif; ?>
                                                     <?php else: ?>
-                                                        <span class="badge bg-light text-muted border py-1 px-2 small ms-2">
-                                                            Pendiente
-                                                        </span>
+                                                        <?php if ($tiene_registro): ?>
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2 small ms-2" title="Ya registrado en esta semana">
+                                                                <i class="bi bi-check-circle-fill me-1"></i>Registrado
+                                                            </span>
+                                                        <?php else: ?>
+                                                            <span class="badge bg-light text-muted border py-1 px-2 small ms-2">
+                                                                Sin captura
+                                                            </span>
+                                                        <?php endif; ?>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -566,9 +575,9 @@ if (empty($frecuencias)) $frecuencias = ['DIARIO'];
                                                             class="form-select text-center fw-bold bg-light input-semaforo input-equipo-<?= $equipo_id ?>" 
                                                             id="param_<?= $p['id'] ?>">
                                                         <option value="">Seleccionar...</option>
-                                                        <option value="Sí" <?= $val_guardado === 'Sí' ? 'selected' : '' ?>>Sí</option>
-                                                        <option value="No" <?= $val_guardado === 'No' ? 'selected' : '' ?>>No</option>
-                                                        <option value="N/A" <?= $val_guardado === 'N/A' ? 'selected' : '' ?>>N/A</option>
+                                                        <option value="Sí" <?= in_array(strtoupper(trim((string)$val_guardado)), ['SÍ', 'SI', '1', 'REALIZADA']) ? 'selected' : '' ?>>Realizada (Sí)</option>
+                                                        <option value="No" <?= in_array(strtoupper(trim((string)$val_guardado)), ['NO', '0', 'NO REALIZADA', 'NO SE HIZO']) ? 'selected' : '' ?>>No Realizada (No se hizo)</option>
+                                                        <option value="N/A" <?= strtoupper(trim((string)$val_guardado)) === 'N/A' ? 'selected' : '' ?>>N/A</option>
                                                     </select>
                                                 <?php endif; ?>
                                             </td>

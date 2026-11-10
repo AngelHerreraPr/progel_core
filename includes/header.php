@@ -5,15 +5,22 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 $base_path = in_array(basename(dirname($_SERVER['SCRIPT_FILENAME'] ?? '')), ['tools', 'admin', 'acciones', 'exportaciones']) ? '../' : '';
 
-// Expiración automática de sesión tras 5 minutos (300 segundos) de inactividad
+// Expiración automática de sesión por inactividad DESACTIVADA temporalmente a petición
+/*
 $tiempo_inactividad_max = 300;
 if (isset($_SESSION['nomina'])) {
-    if (isset($_SESSION['ultima_actividad']) && (time() - $_SESSION['ultima_actividad']) > $tiempo_inactividad_max) {
+    if (isset($_SESSION['ultima_actividad']) && (time() - $_SESSION['ultima_actividad']) >= $tiempo_inactividad_max) {
         session_unset();
         session_destroy();
+        setcookie('progel_nomina_activa', '', time() - 3600, '/');
+        setcookie('nomina', '', time() - 3600, '/');
         header("Location: {$base_path}login.php?timeout=1");
         exit();
     }
+    $_SESSION['ultima_actividad'] = time();
+}
+*/
+if (isset($_SESSION['nomina'])) {
     $_SESSION['ultima_actividad'] = time();
 }
 
@@ -62,7 +69,9 @@ if (isset($_SESSION['nomina']) && isset($conn) && $conn) {
             <img src="<?= $base_path ?>img/blanco.png" alt="Logo" class="brand-logo">
             <div class="d-flex flex-column justify-content-center"><span class="h5 mb-0 fw-bold" style="letter-spacing: 1px;">PROGEL <span class="fw-normal">CORE</span></span></div>
         </a>
-        <div class="d-flex align-items-center"><span class="user-pill"><?= htmlspecialchars($_SESSION['rol'] ?? 'Operador') ?></span></div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="user-pill"><?= htmlspecialchars($_SESSION['rol'] ?? 'Operador') ?></span>
+        </div>
     </div>
 </nav>
 <main class="container mt-4">

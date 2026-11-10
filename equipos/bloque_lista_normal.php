@@ -28,9 +28,6 @@ if (empty($frecuencias_tab)) $frecuencias_tab = ['DIARIO'];
         </button>
     </div>
     <div class="d-flex justify-content-end gap-2">
-        <button type="button" class="btn btn-outline-primary btn-sm" disabled>
-            Nómina: <span class="fw-bold text-dark"><?= htmlspecialchars($_SESSION['nomina']) ?></span>
-        </button>
         <a href="historial.php?id=<?= $equipo_id ?>" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
             Historial del Equipo
         </a>

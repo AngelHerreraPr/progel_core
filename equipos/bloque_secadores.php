@@ -183,9 +183,6 @@ if (!function_exists('fmt')) {
             <small class="text-muted">Captura Independiente por Máquina (Cada 3 Hrs)</small>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <button type="button" class="btn btn-outline-dark btn-sm fw-bold" disabled>
-                <i class="bi bi-person-badge"></i> Nómina: <span class="text-dark"><?php echo htmlspecialchars($_SESSION['nomina']); ?></span>
-            </button>
             <a href="historial.php?id=<?php echo $equipo_id; ?>" class="btn btn-secondary btn-sm fw-bold shadow-sm">
                 <i class="bi bi-clock-history"></i> Historial
             </a>

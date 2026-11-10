@@ -3,7 +3,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-date_default_timezone_set('America/Mazatlan');
+date_default_timezone_set('America/Mexico_City');
 
 include_once 'config/db.php';
 include_once 'config/db_v2.php';
@@ -31,24 +31,30 @@ if ($hora_actual_num >= 7 && $hora_actual_num < 19) {
     $fecha_sugerida = ($hora_actual_num < 7) ? date('Y-m-d', strtotime('-1 day')) : date('Y-m-d');
 }
 
-$fecha_filtro = isset($_GET['fecha']) && !empty($_GET['fecha']) ? $_GET['fecha'] : $fecha_sugerida;
+$rol_u = strtoupper(trim($_SESSION['rol'] ?? 'OPERADOR'));
+$es_operador_rep = ($rol_u === 'OPERADOR');
+
+if ($es_operador_rep) {
+    $fecha_filtro = $fecha_sugerida;
+} else {
+    $fecha_filtro = isset($_GET['fecha']) && !empty($_GET['fecha']) ? $_GET['fecha'] : $fecha_sugerida;
+}
 $turno_filtro = isset($_GET['turno']) ? strtolower(trim($_GET['turno'])) : $turno_actual_sugerido;
 if (!in_array($turno_filtro, ['diurno', 'nocturno', 'ambos'])) {
     $turno_filtro = 'diurno';
 }
 
-$vista = isset($_GET['vista']) ? strtolower(trim($_GET['vista'])) : 'diaria';
+$vista = ($es_operador_rep) ? 'diaria' : (isset($_GET['vista']) ? strtolower(trim($_GET['vista'])) : 'diaria');
 if (!in_array($vista, ['diaria', 'semanal'])) {
     $vista = 'diaria';
 }
 
-$intervalo_filtro = isset($_GET['intervalo']) ? strtolower(trim($_GET['intervalo'])) : '1h';
+$intervalo_filtro = isset($_GET['intervalo']) ? strtolower(trim($_GET['intervalo'])) : '2h';
 if (!in_array($intervalo_filtro, ['1h', '2h', 'auto'])) {
-    $intervalo_filtro = '1h';
+    $intervalo_filtro = '2h';
 }
 
 // Filtro por Zona (Soporta id numérico o slug: 'blanca', 'gris', 'negra')
-$rol_u = strtoupper(trim($_SESSION['rol'] ?? ''));
 $zona_u = strtoupper(trim($_SESSION['zona'] ?? 'TODAS'));
 $es_admin_jefe = in_array($rol_u, ['ADMIN', 'JEFATURA']);
 
@@ -153,6 +159,13 @@ if (!function_exists('mapearBloqueTurno')) {
 // =========================================================================
 if (!function_exists('obtenerRangosDesglosados')) {
     function obtenerRangosDesglosados($p) {
+        if (isset($p['equipo_id']) && (int)$p['equipo_id'] === 100) {
+            return [
+                'verde' => 'Por definir',
+                'amarillo' => 'Por definir',
+                'rojo' => 'Por definir'
+            ];
+        }
         $pid_check = isset($p['id']) ? (int)$p['id'] : 0;
         if ($pid_check > 0 && isset($GLOBALS['TEXTOS_SEMAFORO_CONCENTRADORES'][$pid_check])) {
             return $GLOBALS['TEXTOS_SEMAFORO_CONCENTRADORES'][$pid_check];
@@ -367,7 +380,7 @@ $lista_zonas = [];
 if ($q_zonas) while ($z = mysqli_fetch_assoc($q_zonas)) $lista_zonas[] = $z;
 
 $conteo_equipos = [];
-$q_count = mysqli_query($conn, "SELECT a.zona_id, COUNT(e.id) as total FROM equipos e JOIN areas a ON e.area_id = a.id WHERE e.nombre NOT LIKE 'Producto Votator' GROUP BY a.zona_id");
+$q_count = mysqli_query($conn, "SELECT a.zona_id, COUNT(e.id) as total FROM equipos e JOIN areas a ON e.area_id = a.id WHERE e.nombre NOT LIKE 'Producto Votator' AND e.id NOT IN (8, 83, 84, 85, 86, 87, 88, 89) GROUP BY a.zona_id");
 if ($q_count) while ($row = mysqli_fetch_assoc($q_count)) $conteo_equipos[$row['zona_id']] = $row['total'];
 
 // =========================================================================
@@ -632,14 +645,20 @@ if ($vista === 'diaria') {
 
     if ($c_memb_q) {
         $q_memb = mysqli_query($c_memb_q, "SELECT * FROM bitacora_membranas 
-                                            WHERE $whereFechaActiva 
-                                            ORDER BY fecha_registro ASC, paquete_numero ASC");
+                                            WHERE (fecha IN ('$fecha_filtro', '$fecha_siguiente') OR ($whereFechaActiva))
+                                            ORDER BY fecha ASC, hora ASC, fecha_registro ASC, paquete_numero ASC");
         if ($q_memb) {
             while ($rm = mysqli_fetch_assoc($q_memb)) {
-                $fReg = !empty($rm['fecha_registro']) ? $rm['fecha_registro'] : ($rm['fecha'] . ' ' . $rm['hora']);
+                $hora_op = !empty($rm['hora']) ? (strlen($rm['hora']) === 5 ? $rm['hora'] . ':00' : $rm['hora']) : '';
+                $fOp = (!empty($rm['fecha']) && !empty($hora_op)) ? ($rm['fecha'] . ' ' . $hora_op) : ($rm['fecha_registro'] ?? '');
+                $fReg = !empty($rm['fecha_registro']) ? $rm['fecha_registro'] : $fOp;
                 $map = mapearBloqueTurno($fReg, $fecha_filtro, $intervalo_filtro);
+                if (!$map && !empty($fOp)) {
+                    $map = mapearBloqueTurno($fOp, $fecha_filtro, $intervalo_filtro);
+                }
                 if (!$map) continue;
                 $t = $map['turno'];
+                if ($turno_filtro !== 'ambos' && $t !== $turno_filtro) continue;
                 $b = $map['bloque'];
                 $pNum = (int)$rm['paquete_numero'];
 
@@ -705,10 +724,10 @@ if ($vista === 'diaria') {
 
 // Estructura de Paquetes para Membranas
 $etapas_membranas_def = [
-    1 => ['nombre' => 'ETAPA 1 (Paquetes 1, 2, 3, 4, 9)', 'paquetes' => [1, 2, 3, 4, 9]],
-    2 => ['nombre' => 'ETAPA 2 (Paquetes 5, 6, 7, 8)', 'paquetes' => [5, 6, 7, 8]],
-    3 => ['nombre' => 'ETAPA 3 (Paquetes 10, 11)', 'paquetes' => [10, 11]],
-    4 => ['nombre' => 'ETAPA 4 (Paquetes 12, 13)', 'paquetes' => [12, 13]]
+    1 => ['nombre' => 'ETAPA 1 — Filtración Primaria', 'subtitulo' => 'Filtración Primaria', 'color' => '#0d6efd', 'badge' => 'primary', 'paquetes' => [1, 2, 3, 4, 9]],
+    2 => ['nombre' => 'ETAPA 2 — Concentración Intermedia', 'subtitulo' => 'Concentración Intermedia', 'color' => '#198754', 'badge' => 'success', 'paquetes' => [5, 6, 7, 8]],
+    3 => ['nombre' => 'ETAPA 3 — Concentración Avanzada', 'subtitulo' => 'Concentración Avanzada', 'color' => '#fd7e14', 'badge' => 'warning text-dark', 'paquetes' => [10, 11]],
+    4 => ['nombre' => 'ETAPA 4 — Concentración Final / Pulido', 'subtitulo' => 'Concentración Final / Pulido', 'color' => '#6f42c1', 'badge' => 'dark', 'paquetes' => [12, 13]]
 ];
 
 include 'includes/header.php';
@@ -716,6 +735,75 @@ include 'includes/header.php';
 
 <link rel="stylesheet" href="assets/css/reporte_general.css?v=<?= filemtime(__DIR__ . '/assets/css/reporte_general.css') ?>">
 <style>
+.cell-matrix-blanco {
+    background-color: #ffffff !important;
+    border: 1px solid #475569 !important;
+    color: #000000 !important;
+    font-weight: 800 !important;
+}
+.cell-matrix-blanco:hover {
+    background-color: #f1f5f9 !important;
+    outline: 2px solid #0f172a !important;
+    outline-offset: -2px !important;
+}
+.tabla-sabana-rg {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.74rem;
+}
+.tabla-sabana-rg th, .tabla-sabana-rg td {
+    border: 1px solid #334155 !important;
+    padding: 4px 5px !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+}
+.tabla-sabana-rg thead tr.row-etapa th {
+    font-size: 0.78rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+    padding: 6px 8px !important;
+    border-bottom: 2px solid #0f172a !important;
+}
+.tabla-sabana-rg thead tr.row-paquete th {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+    font-size: 0.74rem !important;
+    font-weight: 800 !important;
+    padding: 5px 6px !important;
+}
+.tabla-sabana-rg thead tr.row-param-nom th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    font-size: 0.66rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    padding: 4px 4px !important;
+    white-space: normal !important;
+    min-width: 52px;
+}
+.tabla-sabana-rg thead tr.row-param-rango th {
+    font-size: 0.63rem !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    padding: 3px 4px !important;
+    border-bottom: 2px solid #0f172a !important;
+    white-space: normal !important;
+}
+.th-rango-pendiente-rg {
+    background-color: #e2e8f0 !important;
+    color: #1e293b !important;
+}
+.th-rango-semaforo-rg {
+    background-color: #fefce8 !important;
+    color: #0f172a !important;
+}
+.borde-fin-paquete-rg {
+    border-right: 2.5px solid #0f172a !important;
+}
+.borde-fin-etapa-rg {
+    border-right: 3.5px solid #0f172a !important;
+}
 main.container { 
     max-width: 99vw !important; 
     width: 99vw !important; 
@@ -808,7 +896,7 @@ main.container {
                 <i class="bi bi-printer me-1"></i> Imprimir Reporte
             </button>
             <?php if (strtoupper(trim($_SESSION['rol'] ?? '')) === 'ADMIN'): ?>
-                <a href="config_parametros.php" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
+                <a href="admin/config_parametros.php" class="btn btn-warning btn-sm fw-bold text-dark shadow-sm">
                     <i class="bi bi-sliders me-1"></i> Configurar Rangos
                 </a>
             <?php endif; ?>
@@ -864,24 +952,34 @@ main.container {
                 <label class="form-label small fw-bold text-secondary mb-1">
                     <i class="bi bi-calendar-event me-1"></i> Día Operativo:
                 </label>
-                <div class="input-group input-group-sm">
-                    <?php $query_zona_param = ($zona_filtro > 0) ? "&zona=$zona_filtro" : ""; ?>
-                    <a href="reporte_general.php?fecha=<?= $fecha_anterior ?>&turno=<?= $turno_filtro ?>&intervalo=<?= $intervalo_filtro ?>&vista=<?= $vista ?><?= $query_zona_param ?>" 
-                       class="btn btn-outline-secondary fw-bold" title="Día Anterior">
-                        <i class="bi bi-chevron-left"></i>
-                    </a>
-                    <input type="date" name="fecha" value="<?= htmlspecialchars($fecha_filtro) ?>" 
-                           class="form-control form-control-sm fw-bold text-center" 
-                           onchange="document.getElementById('formFiltroGeneral').submit();">
-                    <a href="reporte_general.php?fecha=<?= $fecha_siguiente ?>&turno=<?= $turno_filtro ?>&intervalo=<?= $intervalo_filtro ?>&vista=<?= $vista ?><?= $query_zona_param ?>" 
-                       class="btn btn-outline-secondary fw-bold" title="Día Siguiente">
-                        <i class="bi bi-chevron-right"></i>
-                    </a>
-                    <a href="reporte_general.php?fecha=<?= $fecha_hoy ?>&turno=<?= $turno_filtro ?>&intervalo=<?= $intervalo_filtro ?>&vista=<?= $vista ?><?= $query_zona_param ?>" 
-                       class="btn <?= $fecha_filtro == $fecha_hoy ? 'btn-primary' : 'btn-outline-primary' ?> fw-bold">
-                        Hoy
-                    </a>
-                </div>
+                <?php if ($es_operador_rep): ?>
+                    <div class="input-group input-group-sm">
+                        <input type="date" name="fecha" value="<?= htmlspecialchars($fecha_filtro) ?>" 
+                               class="form-control form-control-sm fw-bold text-center bg-light" readonly>
+                        <span class="input-group-text bg-primary text-white fw-bold">
+                            <i class="bi bi-lock-fill me-1"></i> Solo Día Actual
+                        </span>
+                    </div>
+                <?php else: ?>
+                    <div class="input-group input-group-sm">
+                        <?php $query_zona_param = ($zona_filtro > 0) ? "&zona=$zona_filtro" : ""; ?>
+                        <a href="reporte_general.php?fecha=<?= $fecha_anterior ?>&turno=<?= $turno_filtro ?>&intervalo=<?= $intervalo_filtro ?>&vista=<?= $vista ?><?= $query_zona_param ?>" 
+                           class="btn btn-outline-secondary fw-bold" title="Día Anterior">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                        <input type="date" name="fecha" value="<?= htmlspecialchars($fecha_filtro) ?>" 
+                               class="form-control form-control-sm fw-bold text-center" 
+                               onchange="document.getElementById('formFiltroGeneral').submit();">
+                        <a href="reporte_general.php?fecha=<?= $fecha_siguiente ?>&turno=<?= $turno_filtro ?>&intervalo=<?= $intervalo_filtro ?>&vista=<?= $vista ?><?= $query_zona_param ?>" 
+                           class="btn btn-outline-secondary fw-bold" title="Día Siguiente">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        <a href="reporte_general.php?fecha=<?= $fecha_hoy ?>&turno=<?= $turno_filtro ?>&intervalo=<?= $intervalo_filtro ?>&vista=<?= $vista ?><?= $query_zona_param ?>" 
+                           class="btn <?= $fecha_filtro == $fecha_hoy ? 'btn-primary' : 'btn-outline-primary' ?> fw-bold">
+                            Hoy
+                        </a>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <!-- Selector de Turno Operativo -->
@@ -1038,7 +1136,7 @@ main.container {
 
                                         <div class="equipos-grid">
                                             <?php
-                                            $sql_equipos = "SELECT * FROM equipos WHERE area_id = $area_id AND nombre NOT LIKE 'Producto Votator' ORDER BY id ASC";
+                                            $sql_equipos = "SELECT * FROM equipos WHERE area_id = $area_id AND nombre NOT LIKE 'Producto Votator' AND id NOT IN (8, 83, 84, 85, 86, 87, 88, 89) ORDER BY id ASC";
                                             $res_equipos = mysqli_query($conn, $sql_equipos);
                                             if ($res_equipos && mysqli_num_rows($res_equipos) > 0) {
                                                 while ($eq = mysqli_fetch_assoc($res_equipos)) {
@@ -1065,6 +1163,9 @@ main.container {
                                                                     <span class="badge bg-info text-dark rounded-pill px-2 py-1 small"><?= $total_memb_en_turno ?> Capturas</span>
                                                                 </div>
                                                                 <div class="d-flex align-items-center gap-2">
+                                                                    <a href="historial.php?id=100&fecha=<?= $fecha_filtro ?>&turno=<?= $turno_filtro ?>&print=1" target="_blank" class="btn btn-dark btn-sm fw-bold rounded-pill px-3 shadow-sm" style="font-size: 0.75rem;">
+                                                                        <i class="bi bi-printer-fill me-1"></i> Imprimir Membranas
+                                                                    </a>
                                                                     <a href="captura.php?id=100" class="btn-captura"><i class="bi bi-pencil-square me-1"></i> Capturar</a>
                                                                     <a href="historial.php?id=100&fecha=<?= $fecha_filtro ?>&turno=<?= $turno_filtro ?>" class="btn-historial"><i class="bi bi-clock-history me-1"></i> Historial</a>
                                                                 </div>
@@ -1074,224 +1175,145 @@ main.container {
                                                                 $t_info = $turnos_config[$t_key];
                                                                 $t_bloques = $t_info['bloques'];
                                                             ?>
-                                                            <div class="mb-4">
-                                                                <!-- Barra de Equipo y Turno (Estilo Idéntico a Imagen 2) -->
-                                                                <div class="title-equipo" style="<?= $t_key === 'nocturno' ? 'border-left-color: #3b82f6;' : 'border-left-color: #0284c7;' ?>">
-                                                                    <div class="d-flex align-items-center gap-2">
-                                                                        <span><strong>Equipo:</strong> <?= htmlspecialchars($eq_nombre) ?></span>
-                                                                        <span class="vr mx-1"></span>
-                                                                        <span class="badge <?= $t_key === 'nocturno' ? 'bg-primary text-white' : 'bg-warning text-dark' ?> px-3 py-1 fs-6">
-                                                                            <i class="bi <?= $t_info['icono'] ?> me-1"></i><?= strtoupper($t_info['titulo']) ?>
-                                                                        </span>
+                                                            <div class="p-3">
+                                                                <!-- TABLA SÁBANA CONCENTRADA DE MEMBRANAS (ETAPAS Y PAQUETES ARRIBA, HORAS EN FILAS) -->
+                                                                <div class="mb-3 border border-dark rounded-3 overflow-hidden shadow-sm">
+                                                                    <div class="bg-light border-bottom border-dark py-2 px-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                                        <div class="d-flex align-items-center gap-2">
+                                                                            <span class="badge bg-dark text-white px-3 py-1">
+                                                                                <i class="bi bi-journal-check me-1 text-info"></i> BITÁCORA DE OPERACIÓN DE MEMBRANAS
+                                                                            </span>
+                                                                            <span class="badge <?= $t_key === 'nocturno' ? 'bg-primary text-white' : 'bg-warning text-dark border border-dark' ?> px-2 py-1">
+                                                                                <i class="bi <?= $t_info['icono'] ?> me-1"></i><?= strtoupper($t_info['titulo']) ?>
+                                                                            </span>
+                                                                        </div>
+                                                                        <div class="d-flex align-items-center gap-2 small">
+                                                                            <span class="badge bg-white text-dark border border-secondary"><strong>Pendiente:</strong> Fondo Blanco / Letra Negra</span>
+                                                                            <span class="badge text-white" style="background:#2e8b57;"><strong>Permeado:</strong> &lt;0.1 V | 0.1-0.5 A | &gt;0.5 R</span>
+                                                                            <span class="badge text-white" style="background:#c94436;"><strong>Temp °C:</strong> &lt;39 R | 40-44.9 A | 45-55 V | 56-60 A | &gt;60 R</span>
+                                                                        </div>
                                                                     </div>
-                                                                    <div class="d-flex align-items-center gap-2">
-                                                                        <span><strong>Fecha Operativa:</strong> <?= date('Y-m-d', strtotime($fecha_filtro)) ?></span>
-                                                                        <a href="captura.php?id=100" class="btn btn-sm btn-success rounded-pill px-3 fw-bold ms-2" style="font-size:0.75rem;"><i class="bi bi-pencil-square me-1"></i> Capturar</a>
-                                                                        <a href="historial.php?id=100&fecha=<?= $fecha_filtro ?>&turno=<?= $t_key ?>" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" style="font-size:0.75rem;"><i class="bi bi-clock-history me-1"></i> Historial</a>
-                                                                    </div>
-                                                                </div>
-
-                                                                <table class="table-matriz">
-                                                                    <thead>
-                                                                        <tr class="header-navy" style="<?= $t_key === 'nocturno' ? 'background-color: #0f172a !important;' : '' ?>">
-                                                                            <th style="width: 215px; text-align: left !important; padding-left: 12px !important;">Paquete / Parámetro</th>
-                                                                            <th class="th-rango-verde" title="Rango Óptimo">Verde</th>
-                                                                            <th class="th-rango-amarillo" title="Rango de Alerta">Amarillo</th>
-                                                                            <th class="th-rango-rojo" title="Rango Crítico">Rojo</th>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $hNum = intval(substr($b_key, 0, 2));
-                                                                                $esDiaSig = ($t_key === 'nocturno' && $hNum < 12);
-                                                                            ?>
-                                                                                <th style="vertical-align: middle;">
-                                                                                    <div style="font-size: 11px; font-weight: bold;"><?= $b_data['label'] ?></div>
-                                                                                    <div style="font-size: 8px; font-weight: 600; opacity: 0.9; color: <?= $esDiaSig ? '#93c5fd' : '#cbd5e1' ?>;"><?= $b_data['sub'] ?></div>
-                                                                                </th>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        <!-- Fila 1: Hora del Registro -->
-                                                                        <tr class="row-hora-registro">
-                                                                            <td class="param-name">Hora del Registro</td>
-                                                                            <td class="text-center text-muted fw-bold" style="background-color: #f8fafc; font-size: 9px;">--</td>
-                                                                            <td class="text-center text-muted fw-bold" style="background-color: #f8fafc; font-size: 9px;">--</td>
-                                                                            <td class="text-center text-muted fw-bold" style="background-color: #f8fafc; font-size: 9px;">--</td>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $h_ex = $membranas_turnos[$t_key]['horas_exactas'][$b_key] ?? null;
-                                                                            ?>
-                                                                                <td class="hora-val-cell text-center <?= $h_ex ? 'fw-bold text-dark' : 'text-muted' ?>">
-                                                                                    <?= $h_ex ? htmlspecialchars($h_ex) : '' ?>
-                                                                                </td>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
-
-                                                                        <!-- Paquetes por Etapa -->
-                                                                        <?php foreach ($etapas_membranas_def as $eNum => $eInfo): ?>
-                                                                            <tr class="seccion-etapa-header" style="background-color: #f1f5f9; border-top: 2px solid #cbd5e1;">
-                                                                                <td colspan="<?= count($t_bloques) + 4 ?>" class="fw-bold text-uppercase py-1 px-3 text-start text-primary" style="font-size: 0.78rem; text-align: left !important;">
-                                                                                    <i class="bi bi-diagram-3-fill me-1"></i> <?= $eInfo['nombre'] ?>
-                                                                                </td>
-                                                                            </tr>
-                                                                            <?php foreach ($eInfo['paquetes'] as $paqNum): ?>
-                                                                                <tr>
-                                                                                    <td class="param-name">
-                                                                                        <span class="badge bg-secondary rounded-pill me-1" style="font-size: 0.65rem;">E<?= $eNum ?></span>
-                                                                                        Paquete <?= $paqNum ?> <small class="text-muted">(ΔP bar)</small>
-                                                                                    </td>
-                                                                                    <td class="col-rango-verde">&lt; 1.20 bar</td>
-                                                                                    <td class="col-rango-amarillo">1.20 - 1.80 bar</td>
-                                                                                    <td class="col-rango-rojo">≥ 1.80 bar / F.O.</td>
-                                                                                    <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                        $rm = $membranas_turnos[$t_key]['paquetes'][$paqNum][$b_key] ?? null;
-                                                                                        if ($rm):
-                                                                                            $est = strtoupper(trim($rm['estado'] ?? ''));
-                                                                                            $dp = $rm['delta_presion'];
-                                                                                            if ($est === 'LAVADO') { $cCls = 'cell-matrix-lavado'; $bText = 'LAVADO'; }
-                                                                                            elseif ($est === 'MMT' || $est === 'MMTT') { $cCls = 'cell-matrix-amarillo'; $bText = 'MMTT'; }
-                                                                                            elseif ($est === 'FO' || $est === 'F.O.') { $cCls = 'cell-matrix-rojo'; $bText = 'F.O.'; }
-                                                                                            elseif ($dp !== null && is_numeric($dp)) {
-                                                                                                $dpVal = floatval($dp);
-                                                                                                if ($dpVal < 1.20) $cCls = 'cell-matrix-verde';
-                                                                                                elseif ($dpVal < 1.80) $cCls = 'cell-matrix-amarillo';
-                                                                                                else $cCls = 'cell-matrix-rojo';
-                                                                                                $bText = number_format($dpVal, 2);
-                                                                                            } else {
-                                                                                                $cCls = 'cell-matrix-gris';
-                                                                                                $bText = !empty($est) ? $est : 'OK';
-                                                                                            }
-                                                                                            $regJson = htmlspecialchars(json_encode($rm), ENT_QUOTES, 'UTF-8');
-                                                                                    ?>
-                                                                                        <td class="cell-matrix <?= $cCls ?>" onclick='abrirModalDetalleMemb(<?= $regJson ?>)' title="Clic para ver detalle completo">
-                                                                                            <?= $bText ?>
-                                                                                        </td>
-                                                                                    <?php else: ?>
-                                                                                        <td class="cell-matrix cell-matrix-empty">-</td>
-                                                                                    <?php endif; ?>
+                                                                    <div class="table-responsive">
+                                                                        <table class="tabla-sabana-rg">
+                                                                            <thead>
+                                                                                <tr class="row-etapa">
+                                                                                    <th rowspan="4" style="background-color:#0f172a !important; color:#ffffff !important; min-width:65px; border-right:2px solid #0f172a !important;">HORA</th>
+                                                                                    <th rowspan="4" style="background-color:#1e293b !important; color:#ffffff !important; min-width:65px; border-right:2.5px solid #0f172a !important;">OPERADOR</th>
+                                                                                    <?php foreach ($etapas_membranas_def as $eNumS => $eInfoS): ?>
+                                                                                        <th colspan="<?= count($eInfoS['paquetes']) * 7 ?>" class="borde-fin-etapa-rg" style="background-color: <?= $eInfoS['color'] ?> !important; color: #ffffff !important;">
+                                                                                            ETAPA <?= $eNumS ?> — <?= htmlspecialchars($eInfoS['subtitulo']) ?>
+                                                                                        </th>
                                                                                     <?php endforeach; ?>
                                                                                 </tr>
-                                                                            <?php endforeach; ?>
-                                                                        <?php endforeach; ?>
-
-                                                                        <!-- Monitoreo de Brix -->
-                                                                        <tr class="seccion-etapa-header" style="background-color: #fef9c3; border-top: 2px solid #fde047;">
-                                                                            <td colspan="<?= count($t_bloques) + 4 ?>" class="fw-bold text-uppercase py-1 px-3 text-start" style="color: #854d0e; font-size: 0.78rem; text-align: left !important;">
-                                                                                <i class="bi bi-droplet-half me-1"></i> MONITOREO DE BRIX Y CONCENTRACIÓN
-                                                                            </td>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td class="param-name">Brix Entrada (°Bx)</td>
-                                                                            <td class="col-rango-verde">4.0 - 8.0 °Bx</td>
-                                                                            <td class="col-rango-amarillo">3.0 - 4.0 °Bx</td>
-                                                                            <td class="col-rango-rojo">&lt; 3.0 °Bx</td>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $bx = $membranas_turnos[$t_key]['brix_in'][$b_key] ?? null;
-                                                                            ?>
-                                                                                <td><?= ($bx !== null) ? '<span class="badge bg-light text-dark border fw-bold">' . number_format($bx, 1) . '</span>' : '<span class="text-muted" style="opacity:0.35;">-</span>' ?></td>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td class="param-name">Brix Salida / Concentrado (°Bx)</td>
-                                                                            <td class="col-rango-verde">≥ 18.0 °Bx</td>
-                                                                            <td class="col-rango-amarillo">16.0 - 17.9 °Bx</td>
-                                                                            <td class="col-rango-rojo">&lt; 16.0 °Bx</td>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $bx = $membranas_turnos[$t_key]['brix_out'][$b_key] ?? null;
-                                                                                $cClsBrix = ($bx !== null) ? ($bx >= 18.0 ? 'cell-matrix-verde' : ($bx >= 16.0 ? 'cell-matrix-amarillo' : 'cell-matrix-rojo')) : '';
-                                                                            ?>
-                                                                                <?php if ($bx !== null): ?>
-                                                                                    <td class="cell-matrix <?= $cClsBrix ?>"><?= number_format($bx, 1) ?></td>
-                                                                                <?php else: ?>
-                                                                                    <td class="cell-matrix cell-matrix-empty">-</td>
-                                                                                <?php endif; ?>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
-                                                                        <tr>
-                                                                            <td class="param-name">Brix Permeado (°Bx)</td>
-                                                                            <td class="col-rango-verde">≤ 0.5 °Bx</td>
-                                                                            <td class="col-rango-amarillo">0.5 - 1.0 °Bx</td>
-                                                                            <td class="col-rango-rojo">&gt; 1.0 °Bx</td>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $bx = $membranas_turnos[$t_key]['brix_perm'][$b_key] ?? null;
-                                                                                $cClsBrix = ($bx !== null) ? ($bx <= 0.5 ? 'cell-matrix-verde' : ($bx <= 1.0 ? 'cell-matrix-amarillo' : 'cell-matrix-rojo')) : '';
-                                                                            ?>
-                                                                                <?php if ($bx !== null): ?>
-                                                                                    <td class="cell-matrix <?= $cClsBrix ?>"><?= number_format($bx, 1) ?></td>
-                                                                                <?php else: ?>
-                                                                                    <td class="cell-matrix cell-matrix-empty">-</td>
-                                                                                <?php endif; ?>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
-
-                                                                        <!-- Observaciones / Acciones Membranas -->
-                                                                        <tr class="row-observaciones">
-                                                                            <td class="param-name">
-                                                                                <div class="d-flex align-items-center justify-content-between">
-                                                                                    <span class="text-truncate">Observaciones / Acciones</span>
-                                                                                    <button type="button" class="btn btn-outline-dark py-0 px-1 ms-1 text-nowrap shadow-none" style="font-size: 8.5px; border-color: #cbd5e1; background: #ffffff;" onclick="toggleDesplegarObservaciones('obs_box_100_<?= $t_key ?>')">
-                                                                                        <i class="bi bi-arrows-expand me-1"></i>Ver todas
-                                                                                    </button>
-                                                                                </div>
-                                                                            </td>
-                                                                            <td class="col-rango-verde text-muted fw-bold">--</td>
-                                                                            <td class="col-rango-amarillo text-muted fw-bold">--</td>
-                                                                            <td class="col-rango-rojo text-muted fw-bold">--</td>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $obs_b = $membranas_turnos[$t_key]['meta'][$b_key]['obs'] ?? '';
-                                                                            ?>
-                                                                                <?php if (!empty($obs_b)): ?>
-                                                                                    <td class="cell-obs-interactive" style="background-color: #fffbeb !important; color: #92400e !important;" 
-                                                                                        onclick="alert('Observación de Membranas (<?= $b_key ?>):\n\n<?= addslashes(htmlspecialchars($obs_b)) ?>')" 
-                                                                                        title="<?= htmlspecialchars($obs_b) ?>">
-                                                                                        <div class="d-flex align-items-center justify-content-center gap-1" style="max-width: 100%; overflow: hidden;">
-                                                                                            <i class="bi bi-chat-left-text-fill text-warning flex-shrink-0" style="font-size: 10px;"></i>
-                                                                                            <span class="text-truncate" style="font-size: 9.5px;"><?= htmlspecialchars($obs_b) ?></span>
-                                                                                        </div>
+                                                                                <tr class="row-paquete">
+                                                                                    <?php foreach ($etapas_membranas_def as $eNumS => $eInfoS): 
+                                                                                        $ultIdxS = count($eInfoS['paquetes']) - 1;
+                                                                                        foreach ($eInfoS['paquetes'] as $idxPS => $paqNumS):
+                                                                                            $clsBS = ($idxPS === $ultIdxS) ? 'borde-fin-etapa-rg' : 'borde-fin-paquete-rg';
+                                                                                    ?>
+                                                                                        <th colspan="7" class="<?= $clsBS ?>">Paquete <?= $paqNumS ?></th>
+                                                                                    <?php endforeach; endforeach; ?>
+                                                                                </tr>
+                                                                                <tr class="row-param-nom">
+                                                                                    <?php foreach ($etapas_membranas_def as $eNumS => $eInfoS): 
+                                                                                        $ultIdxS = count($eInfoS['paquetes']) - 1;
+                                                                                        foreach ($eInfoS['paquetes'] as $idxPS => $paqNumS):
+                                                                                            $clsBS = ($idxPS === $ultIdxS) ? 'borde-fin-etapa-rg' : 'borde-fin-paquete-rg';
+                                                                                    ?>
+                                                                                        <th>Presión<br>Entrada</th>
+                                                                                        <th>Presión<br>Salida</th>
+                                                                                        <th>Delta<br>ΔP</th>
+                                                                                        <th>Brix<br>Entrada</th>
+                                                                                        <th>Sólidos<br>Salida</th>
+                                                                                        <th style="background-color:#ecfdf5 !important;">Permeado<br>(°Bx)</th>
+                                                                                        <th class="<?= $clsBS ?>" style="background-color:#fef2f2 !important;">Temp.<br>(°C)</th>
+                                                                                    <?php endforeach; endforeach; ?>
+                                                                                </tr>
+                                                                                <tr class="row-param-rango">
+                                                                                    <?php foreach ($etapas_membranas_def as $eNumS => $eInfoS): 
+                                                                                        $ultIdxS = count($eInfoS['paquetes']) - 1;
+                                                                                        foreach ($eInfoS['paquetes'] as $idxPS => $paqNumS):
+                                                                                            $clsBS = ($idxPS === $ultIdxS) ? 'borde-fin-etapa-rg' : 'borde-fin-paquete-rg';
+                                                                                    ?>
+                                                                                        <th class="th-rango-pendiente-rg">Pendiente</th>
+                                                                                        <th class="th-rango-pendiente-rg">Pendiente</th>
+                                                                                        <th class="th-rango-pendiente-rg">Pendiente</th>
+                                                                                        <th class="th-rango-pendiente-rg">Pendiente</th>
+                                                                                        <th class="th-rango-pendiente-rg">Pendiente</th>
+                                                                                        <th class="th-rango-semaforo-rg">&lt;0.1 V<br>0.1-0.5 A</th>
+                                                                                        <th class="th-rango-semaforo-rg <?= $clsBS ?>">45-55 °C<br>&lt;39/&gt;60 R</th>
+                                                                                    <?php endforeach; endforeach; ?>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                <?php foreach ($t_bloques as $b_key => $b_data): 
+                                                                                    $opHoraRg = '';
+                                                                                    foreach ($etapas_membranas_def as $eInfoOp) {
+                                                                                        foreach ($eInfoOp['paquetes'] as $pOp) {
+                                                                                            $rmOp = $membranas_turnos[$t_key]['paquetes'][$pOp][$b_key] ?? null;
+                                                                                            if ($rmOp && !empty($rmOp['operador_nomina'])) { $opHoraRg = $rmOp['operador_nomina']; break 2; }
+                                                                                        }
+                                                                                    }
+                                                                                ?>
+                                                                                <tr>
+                                                                                    <td class="fw-bold font-monospace bg-light" style="border-right:2px solid #0f172a !important;"><?= htmlspecialchars($b_data['label']) ?></td>
+                                                                                    <td style="background:#ffffff; border-right:2.5px solid #0f172a !important;">
+                                                                                        <?= !empty($opHoraRg) ? '<span class="badge bg-dark text-white rounded-pill px-2">' . htmlspecialchars($opHoraRg) . '</span>' : '<span class="text-muted">-</span>' ?>
                                                                                     </td>
-                                                                                <?php else: ?>
-                                                                                    <td class="text-muted" style="background-color: #ffffff; font-size: 0.75rem;">-</td>
-                                                                                <?php endif; ?>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
+                                                                                    <?php foreach ($etapas_membranas_def as $eNumS => $eInfoS): 
+                                                                                        $ultIdxS = count($eInfoS['paquetes']) - 1;
+                                                                                        foreach ($eInfoS['paquetes'] as $idxPS => $paqNumS):
+                                                                                            $clsBS = ($idxPS === $ultIdxS) ? 'borde-fin-etapa-rg' : 'borde-fin-paquete-rg';
+                                                                                            $rm = $membranas_turnos[$t_key]['paquetes'][$paqNumS][$b_key] ?? null;
+                                                                                            if (!$rm):
+                                                                                    ?>
+                                                                                        <td class="cell-matrix-empty">/</td>
+                                                                                        <td class="cell-matrix-empty">/</td>
+                                                                                        <td class="cell-matrix-empty">/</td>
+                                                                                        <td class="cell-matrix-empty">/</td>
+                                                                                        <td class="cell-matrix-empty">/</td>
+                                                                                        <td class="cell-matrix-empty">/</td>
+                                                                                        <td class="cell-matrix-empty <?= $clsBS ?>">/</td>
+                                                                                    <?php else:
+                                                                                            $est = strtoupper(trim($rm['estado'] ?? 'OPERACION'));
+                                                                                            $regJsonS = htmlspecialchars(json_encode($rm), ENT_QUOTES, 'UTF-8');
+                                                                                            if (in_array($est, ['LAVADO', 'MMT', 'MMTT', 'FO', 'F.O.'])):
+                                                                                                $clsEstS = ($est === 'LAVADO') ? 'cell-matrix-lavado' : (($est === 'MMT' || $est === 'MMTT') ? 'cell-matrix-amarillo' : 'cell-matrix-rojo');
+                                                                                                $txtEstS = ($est === 'LAVADO') ? 'LAVADO' : (($est === 'MMT' || $est === 'MMTT') ? 'MMTT' : 'F.O.');
+                                                                                    ?>
+                                                                                        <td colspan="7" class="cell-matrix <?= $clsEstS ?> <?= $clsBS ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $txtEstS ?></td>
+                                                                                    <?php else:
+                                                                                                $vPinS  = ($rm['presion_entrada'] !== null && $rm['presion_entrada'] !== '') ? number_format(floatval($rm['presion_entrada']), 2) : '-';
+                                                                                                $vPoutS = ($rm['presion_salida'] !== null && $rm['presion_salida'] !== '') ? number_format(floatval($rm['presion_salida']), 2) : '-';
+                                                                                                $vDpS   = ($rm['delta_presion'] !== null && $rm['delta_presion'] !== '') ? number_format(floatval($rm['delta_presion']), 2) : '-';
+                                                                                                $vBinS  = ($rm['brix_entrada'] !== null && $rm['brix_entrada'] !== '') ? number_format(floatval($rm['brix_entrada']), 1) : '-';
+                                                                                                $vBoutS = ($rm['brix_salida'] !== null && $rm['brix_salida'] !== '') ? number_format(floatval($rm['brix_salida']), 1) : '-';
 
-                                                                        <!-- Operador Membranas -->
-                                                                        <tr class="row-operador">
-                                                                            <td class="param-name"><i class="bi bi-person-badge text-primary me-1"></i> Operador (Nómina)</td>
-                                                                            <td class="col-rango-verde text-muted fw-bold">--</td>
-                                                                            <td class="col-rango-amarillo text-muted fw-bold">--</td>
-                                                                            <td class="col-rango-rojo text-muted fw-bold">--</td>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $op = $membranas_turnos[$t_key]['meta'][$b_key]['operador'] ?? '';
-                                                                            ?>
-                                                                                <td style="background-color: #ffffff;">
-                                                                                    <?php if (!empty($op)): ?>
-                                                                                        <span class="badge bg-dark text-white rounded-pill px-2 py-1" style="font-size: 0.72rem;"><?= htmlspecialchars($op) ?></span>
-                                                                                    <?php else: ?>
-                                                                                        <span class="text-muted" style="font-size: 0.75rem;">-</span>
-                                                                                    <?php endif; ?>
-                                                                                </td>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
-                                                                    </tbody>
-                                                                </table>
+                                                                                                $bxPermS = ($rm['brix_permeado'] !== null && $rm['brix_permeado'] !== '') ? floatval($rm['brix_permeado']) : null;
+                                                                                                if ($bxPermS !== null) {
+                                                                                                    $vPermS = number_format($bxPermS, 2);
+                                                                                                    $clsPermS = ($bxPermS < 0.1) ? 'cell-matrix-verde' : (($bxPermS <= 0.5) ? 'cell-matrix-amarillo' : 'cell-matrix-rojo');
+                                                                                                } else { $vPermS = '-'; $clsPermS = 'cell-matrix-empty'; }
 
-                                                                <!-- Panel desplegable de Observaciones Membranas -->
-                                                                <div id="obs_box_100_<?= $t_key ?>" class="p-3 bg-light border rounded mb-3" style="display: none;">
-                                                                    <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-chat-left-text-fill text-warning me-1"></i> Observaciones <?= $t_info['titulo'] ?> - Membranas</h6>
-                                                                    <ul class="list-group list-group-flush small">
-                                                                        <?php 
-                                                                        $hay_obs_m = false;
-                                                                        foreach ($t_bloques as $b_key => $b_data) {
-                                                                            $o = $membranas_turnos[$t_key]['meta'][$b_key]['obs'] ?? '';
-                                                                            if (!empty($o)) {
-                                                                                $hay_obs_m = true;
-                                                                                echo '<li class="list-group-item bg-transparent py-1"><strong>' . $b_key . ':</strong> ' . htmlspecialchars($o) . '</li>';
-                                                                            }
-                                                                        }
-                                                                        if (!$hay_obs_m) {
-                                                                            echo '<li class="list-group-item bg-transparent text-muted py-1">No hay observaciones registradas en este turno.</li>';
-                                                                        }
-                                                                        ?>
-                                                                    </ul>
+                                                                                                $tMembS = (isset($rm['temperatura']) && $rm['temperatura'] !== null && $rm['temperatura'] !== '') ? floatval($rm['temperatura']) : null;
+                                                                                                if ($tMembS !== null) {
+                                                                                                    $vTempS = number_format($tMembS, 1);
+                                                                                                    $clsTempS = ($tMembS >= 45 && $tMembS <= 55) ? 'cell-matrix-verde' : ((($tMembS >= 40 && $tMembS < 45) || ($tMembS > 55 && $tMembS <= 60)) ? 'cell-matrix-amarillo' : 'cell-matrix-rojo');
+                                                                                                } else { $vTempS = '-'; $clsTempS = 'cell-matrix-empty'; }
+                                                                                    ?>
+                                                                                        <td class="cell-matrix <?= $vPinS !== '-' ? 'cell-matrix-blanco' : 'cell-matrix-empty' ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $vPinS ?></td>
+                                                                                        <td class="cell-matrix <?= $vPoutS !== '-' ? 'cell-matrix-blanco' : 'cell-matrix-empty' ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $vPoutS ?></td>
+                                                                                        <td class="cell-matrix <?= $vDpS !== '-' ? 'cell-matrix-blanco' : 'cell-matrix-empty' ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $vDpS ?></td>
+                                                                                        <td class="cell-matrix <?= $vBinS !== '-' ? 'cell-matrix-blanco' : 'cell-matrix-empty' ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $vBinS ?></td>
+                                                                                        <td class="cell-matrix <?= $vBoutS !== '-' ? 'cell-matrix-blanco' : 'cell-matrix-empty' ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $vBoutS ?></td>
+                                                                                        <td class="cell-matrix <?= $clsPermS ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $vPermS ?></td>
+                                                                                        <td class="cell-matrix <?= $clsTempS ?> <?= $clsBS ?>" onclick='abrirModalDetalleMemb(<?= $regJsonS ?>)'><?= $vTempS ?></td>
+                                                                                    <?php endif; endif; endforeach; endforeach; ?>
+                                                                                </tr>
+                                                                                <?php endforeach; ?>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                             <?php endforeach; ?>
@@ -1320,11 +1342,15 @@ main.container {
                                                                 </div>
                                                                 <div class="d-flex align-items-center gap-2">
                                                                     <?php if ($es_secador): ?>
-                                                                        <a href="http://localhost/sis_extraccion/index.php?view=secadores" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
+                                                                        <a href="http://192.168.1.105/sis_extraccion/index.php?view=secadores" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
                                                                             <i class="bi bi-box-arrow-up-right me-1"></i> Sis_Extracción
                                                                         </a>
                                                                     <?php elseif ($es_votator): ?>
-                                                                        <a href="http://localhost/sis_extraccion/index.php?view=votators" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
+                                                                        <a href="http://192.168.1.105/sis_extraccion/index.php?view=votators" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
+                                                                            <i class="bi bi-box-arrow-up-right me-1"></i> Sis_Extracción
+                                                                        </a>
+                                                                    <?php elseif ($es_concentrador): ?>
+                                                                        <a href="http://192.168.1.105/sis_extraccion/index.php?view=concentradores&equipo_id=<?= $ext_conc_id ?>" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
                                                                             <i class="bi bi-box-arrow-up-right me-1"></i> Sis_Extracción
                                                                         </a>
                                                                     <?php else: ?>
@@ -1358,11 +1384,15 @@ main.container {
                                                                     <div class="d-flex align-items-center gap-2">
                                                                         <span><strong>Fecha Operativa:</strong> <?= date('Y-m-d', strtotime($fecha_filtro)) ?></span>
                                                                         <?php if ($es_secador): ?>
-                                                                            <a href="http://localhost/sis_extraccion/index.php?view=secadores" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
+                                                                            <a href="http://192.168.1.105/sis_extraccion/index.php?view=secadores" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
                                                                                 <i class="bi bi-box-arrow-up-right me-1"></i> Sis_Extracción
                                                                             </a>
                                                                         <?php elseif ($es_votator): ?>
-                                                                            <a href="http://localhost/sis_extraccion/index.php?view=votators" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
+                                                                            <a href="http://192.168.1.105/sis_extraccion/index.php?view=votators" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
+                                                                                <i class="bi bi-box-arrow-up-right me-1"></i> Sis_Extracción
+                                                                            </a>
+                                                                        <?php elseif ($es_concentrador): ?>
+                                                                            <a href="http://192.168.1.105/sis_extraccion/index.php?view=concentradores&equipo_id=<?= $ext_conc_id ?>" class="btn btn-sm btn-outline-primary fw-bold rounded-pill" target="_blank" style="font-size:0.75rem;">
                                                                                 <i class="bi bi-box-arrow-up-right me-1"></i> Sis_Extracción
                                                                             </a>
                                                                         <?php else: ?>
@@ -1403,6 +1433,25 @@ main.container {
                                                                             ?>
                                                                                 <td class="hora-val-cell text-center <?= $f_ex ? 'fw-bold text-dark' : 'text-muted' ?>">
                                                                                     <?= $hora_str ?>
+                                                                                </td>
+                                                                            <?php endforeach; ?>
+                                                                        </tr>
+
+                                                                        <!-- Fila 2: Operador (Nómina) en la parte superior -->
+                                                                        <tr class="row-operador">
+                                                                            <td class="param-name"><i class="bi bi-person-badge text-primary me-1"></i> Operador (Nómina)</td>
+                                                                            <td class="col-rango-verde text-muted fw-bold">--</td>
+                                                                            <td class="col-rango-amarillo text-muted fw-bold">--</td>
+                                                                            <td class="col-rango-rojo text-muted fw-bold">--</td>
+                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
+                                                                                $op = $cache_meta_equipo[$t_key][$eq_id][$b_key]['operador'] ?? '';
+                                                                            ?>
+                                                                                <td style="background-color: #ffffff; text-align: center;">
+                                                                                    <?php if (!empty($op)): ?>
+                                                                                        <span class="badge bg-dark text-white rounded-pill px-2 py-1" style="font-size: 0.72rem;"><?= htmlspecialchars($op) ?></span>
+                                                                                    <?php else: ?>
+                                                                                        <span class="text-muted" style="font-size: 0.75rem;">-</span>
+                                                                                    <?php endif; ?>
                                                                                 </td>
                                                                             <?php endforeach; ?>
                                                                         </tr>
@@ -1526,25 +1575,6 @@ main.container {
                                                                                 <?php else: ?>
                                                                                     <td class="text-muted" style="background-color: #ffffff; font-size: 0.75rem;">-</td>
                                                                                 <?php endif; ?>
-                                                                            <?php endforeach; ?>
-                                                                        </tr>
-
-                                                                        <!-- Fila Operador (Nómina) -->
-                                                                        <tr class="row-operador">
-                                                                            <td class="param-name"><i class="bi bi-person-badge text-primary me-1"></i> Operador (Nómina)</td>
-                                                                            <td class="col-rango-verde text-muted fw-bold">--</td>
-                                                                            <td class="col-rango-amarillo text-muted fw-bold">--</td>
-                                                                            <td class="col-rango-rojo text-muted fw-bold">--</td>
-                                                                            <?php foreach ($t_bloques as $b_key => $b_data): 
-                                                                                $op = $cache_meta_equipo[$t_key][$eq_id][$b_key]['operador'] ?? '';
-                                                                            ?>
-                                                                                <td style="background-color: #ffffff;">
-                                                                                    <?php if (!empty($op)): ?>
-                                                                                        <span class="badge bg-dark text-white rounded-pill px-2 py-1" style="font-size: 0.72rem;"><?= htmlspecialchars($op) ?></span>
-                                                                                    <?php else: ?>
-                                                                                        <span class="text-muted" style="font-size: 0.75rem;">-</span>
-                                                                                    <?php endif; ?>
-                                                                                </td>
                                                                             <?php endforeach; ?>
                                                                         </tr>
                                                                     </tbody>
@@ -1693,7 +1723,7 @@ main.container {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-warning border-4">
                             <span class="text-muted small fw-bold text-uppercase">Brix Entrada</span>
                             <div class="d-flex align-items-baseline gap-1 mt-2">
@@ -1702,7 +1732,7 @@ main.container {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-warning border-4">
                             <span class="text-muted small fw-bold text-uppercase">Brix Salida</span>
                             <div class="d-flex align-items-baseline gap-1 mt-2">
@@ -1711,12 +1741,21 @@ main.container {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-info border-4">
                             <span class="text-muted small fw-bold text-uppercase">Brix Permeado</span>
                             <div class="d-flex align-items-baseline gap-1 mt-2">
                                 <span class="fs-3 fw-bold text-dark font-monospace" id="mDetalleBperm">-</span>
                                 <span class="text-muted small fw-bold">°Bx</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white border-start border-danger border-4">
+                            <span class="text-muted small fw-bold text-uppercase">Temperatura</span>
+                            <div class="d-flex align-items-baseline gap-1 mt-2">
+                                <span class="fs-3 fw-bold text-dark font-monospace" id="mDetalleTemp">-</span>
+                                <span class="text-muted small fw-bold">°C</span>
                             </div>
                         </div>
                     </div>
@@ -1800,9 +1839,7 @@ function abrirModalDetalleMemb(reg) {
     if (reg.delta_presion !== null && reg.delta_presion !== '') {
         const dVal = parseFloat(reg.delta_presion);
         deltaEl.textContent = dVal.toFixed(2);
-        if (dVal >= 1.8) deltaEl.className = 'fs-3 fw-bold font-monospace text-danger';
-        else if (dVal >= 1.2) deltaEl.className = 'fs-3 fw-bold font-monospace text-warning';
-        else deltaEl.className = 'fs-3 fw-bold font-monospace text-success';
+        deltaEl.className = 'fs-3 fw-bold font-monospace text-secondary';
     } else {
         deltaEl.textContent = '-';
         deltaEl.className = 'fs-3 fw-bold font-monospace text-muted';
@@ -1810,7 +1847,11 @@ function abrirModalDetalleMemb(reg) {
 
     document.getElementById('mDetalleBin').textContent = (reg.brix_entrada !== null && reg.brix_entrada !== '') ? parseFloat(reg.brix_entrada).toFixed(1) : '-';
     document.getElementById('mDetalleBout').textContent = (reg.brix_salida !== null && reg.brix_salida !== '') ? parseFloat(reg.brix_salida).toFixed(1) : '-';
-    document.getElementById('mDetalleBperm').textContent = (reg.brix_permeado !== null && reg.brix_permeado !== '') ? parseFloat(reg.brix_permeado).toFixed(1) : '-';
+    document.getElementById('mDetalleBperm').textContent = (reg.brix_permeado !== null && reg.brix_permeado !== '') ? parseFloat(reg.brix_permeado).toFixed(2) : '-';
+    const tempEl = document.getElementById('mDetalleTemp');
+    if (tempEl) {
+        tempEl.textContent = (reg.temperatura !== undefined && reg.temperatura !== null && reg.temperatura !== '') ? parseFloat(reg.temperatura).toFixed(1) : '-';
+    }
     document.getElementById('mDetalleObservaciones').textContent = reg.observaciones && reg.observaciones.trim() ? reg.observaciones : 'Sin observaciones registradas.';
 
     const linkHist = document.getElementById('mDetalleLinkHistorial');

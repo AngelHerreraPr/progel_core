@@ -128,9 +128,6 @@ if(empty($frecuencias)) {
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar
                 </button>
             </div>
-            <button type="button" class="btn btn-outline-dark btn-sm fw-bold" disabled>
-                Nómina: <span class="text-dark"><?php echo htmlspecialchars($_SESSION['nomina']); ?></span>
-            </button>
             <a href="historial.php?id=<?php echo $equipo_id; ?>" class="btn btn-secondary btn-sm fw-bold shadow-sm">
                 Historial
             </a>

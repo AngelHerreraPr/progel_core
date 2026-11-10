@@ -16,7 +16,7 @@
  *   - Se eliminó el badge repetitivo de "En Operación".
  */
 
-date_default_timezone_set('America/Mazatlan');
+date_default_timezone_set('America/Mexico_City');
 
 $etapasMembranas = [
     1 => [
@@ -79,15 +79,31 @@ for ($h = 0; $h < 24; $h++) {
     /* Barra de Navegación de Etapas */
     .nav-tabs-membranas {
         border-bottom: 2px solid #e2e8f0;
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        gap: 4px;
+        scrollbar-width: thin;
+    }
+    .nav-tabs-membranas::-webkit-scrollbar {
+        height: 4px;
+    }
+    .nav-tabs-membranas::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
     }
     .nav-tabs-membranas .nav-link {
         color: #475569;
         font-weight: 700;
         border-radius: 12px 12px 0 0;
-        padding: 0.85rem 1.4rem;
+        padding: 0.75rem 1.2rem;
         border: none;
         border-bottom: 3px solid transparent;
         transition: all 0.2s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
     .nav-tabs-membranas .nav-link:hover {
         color: #0d6efd;
@@ -172,15 +188,15 @@ for ($h = 0; $h < 24; $h++) {
     /* Delta P Display */
     .delta-badge {
         font-family: 'Courier New', monospace;
-        font-size: 1.15rem;
+        font-size: 1.05rem;
         font-weight: 800;
-        padding: 4px 10px;
+        padding: 4px 6px;
         border-radius: 8px;
         background: #f1f5f9;
         border: 1px solid #cbd5e1;
-        display: inline-block;
-        min-width: 75px;
-        text-align: right;
+        display: block;
+        width: 100%;
+        text-align: center;
         color: #0f766e;
     }
 
@@ -193,10 +209,55 @@ for ($h = 0; $h < 24; $h++) {
         box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
     }
     .label-param {
-        font-size: 0.73rem;
+        font-size: 0.72rem;
         font-weight: 700;
-        color: #64748b;
-        margin-bottom: 3px;
+        color: #475569;
+        margin-bottom: 2px;
+        white-space: nowrap;
+    }
+
+    /* Responsividad Tablet (768px a 1024px) */
+    @media (min-width: 768px) and (max-width: 1024px) {
+        .card-paquete-header {
+            padding: 0.55rem 0.75rem !important;
+        }
+        .card-paquete .card-body {
+            padding: 0.75rem !important;
+        }
+        .btn-toggle-estado {
+            font-size: 0.70rem !important;
+            padding: 2px 6px !important;
+        }
+        .delta-badge {
+            font-size: 0.95rem !important;
+            padding: 3px 4px !important;
+        }
+        .label-param {
+            font-size: 0.67rem !important;
+        }
+        .input-metrica {
+            font-size: 0.85rem !important;
+            padding: 0.25rem 0.4rem !important;
+        }
+        .nav-tabs-membranas .nav-link {
+            padding: 0.55rem 0.85rem !important;
+            font-size: 0.85rem !important;
+        }
+    }
+
+    /* Responsividad Laptop y Escritorio (>= 1025px) */
+    @media (min-width: 1025px) {
+        .card-paquete-header {
+            padding: 0.75rem 1rem !important;
+        }
+        .btn-toggle-estado {
+            font-size: 0.75rem !important;
+            padding: 3px 8px !important;
+        }
+        .delta-badge {
+            font-size: 1.1rem !important;
+            padding: 4px 8px !important;
+        }
     }
 
     /* Botón de Excepción (Lavado) */
@@ -216,6 +277,155 @@ for ($h = 0; $h < 24; $h++) {
     }
     .btn-guardar-etapa:hover:not(:disabled) {
         transform: translateY(-2px);
+    }
+
+    /* Estilos de Bitácora Sábana (Hoja Física) en el Modal de Registros del Día */
+    .bitacora-sabana-sheet {
+        background: #ffffff;
+        border: 2px solid #000000;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-bottom: 18px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    .bitacora-sabana-top {
+        border-bottom: 2px solid #000000;
+        padding: 8px 14px;
+        background: #ffffff;
+        color: #000000;
+    }
+    .bitacora-titulo-caja {
+        border: 2px solid #000000;
+        padding: 4px 18px;
+        font-weight: 900;
+        font-size: 0.95rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-align: center;
+        background: #f8fafc;
+        color: #000000;
+    }
+    .bitacora-campo-linea {
+        font-size: 0.80rem;
+        font-weight: 800;
+        color: #000000;
+    }
+    .bitacora-campo-linea span {
+        display: inline-block;
+        border-bottom: 1.5px solid #000000;
+        min-width: 90px;
+        padding: 0 6px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .tabla-sabana-membranas {
+        width: 100%;
+        border-collapse: collapse;
+        background: #ffffff;
+        font-size: 0.72rem;
+    }
+    .tabla-sabana-membranas th,
+    .tabla-sabana-membranas td {
+        border: 1px solid #000000 !important;
+        padding: 3px 4px !important;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    .tabla-sabana-membranas thead tr.row-etapa th {
+        background-color: #e2e8f0 !important;
+        color: #000000 !important;
+        font-weight: 900 !important;
+        font-size: 0.76rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-bottom: 1.5px solid #000000 !important;
+    }
+    .tabla-sabana-membranas thead tr.row-paquete th {
+        background-color: #f1f5f9 !important;
+        color: #000000 !important;
+        font-weight: 800 !important;
+        font-size: 0.72rem !important;
+    }
+    .tabla-sabana-membranas thead tr.row-param-nom th {
+        background-color: #f8fafc !important;
+        color: #000000 !important;
+        font-weight: 800 !important;
+        font-size: 0.64rem !important;
+        line-height: 1.1 !important;
+        padding: 4px 3px !important;
+        white-space: normal !important;
+        min-width: 42px;
+    }
+    .tabla-sabana-membranas thead tr.row-param-rango th {
+        font-size: 0.61rem !important;
+        font-weight: 800 !important;
+        line-height: 1.1 !important;
+        padding: 3px 3px !important;
+        border-bottom: 2px solid #000000 !important;
+        white-space: normal !important;
+    }
+    .th-rango-pendiente {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-style: italic;
+    }
+    .th-rango-semaforo {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    .borde-fin-paquete {
+        border-right: 2px solid #000000 !important;
+    }
+    .borde-fin-etapa {
+        border-right: 3px solid #000000 !important;
+    }
+    .sticky-col-hora {
+        position: sticky;
+        left: 0;
+        z-index: 4;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-weight: 800 !important;
+        min-width: 58px !important;
+        border-right: 2px solid #000000 !important;
+    }
+    .cell-matrix-blanco {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-weight: 800 !important;
+    }
+    .cell-matrix-empty {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+    .cell-matrix-verde {
+        background-color: #2e8b57 !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+    }
+    .cell-matrix-amarillo {
+        background-color: #facc15 !important;
+        color: #111827 !important;
+        font-weight: 800 !important;
+    }
+    .cell-matrix-rojo {
+        background-color: #c94436 !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+    }
+    .cell-matrix-lavado {
+        background-color: #2563eb !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+    }
+    .tabla-sabana-membranas.modo-hoja-fisica .col-extra-memb,
+    .tabla-sabana-membranas.modo-hoja-fisica .col-semaforo-memb {
+        display: none !important;
+    }
+    .tabla-sabana-membranas.modo-compacto .col-extra-memb {
+        display: none !important;
     }
 </style>
 
@@ -248,6 +458,9 @@ for ($h = 0; $h < 24; $h++) {
 
                 <!-- ACCIONES RÁPIDAS: HISTORIAL, REGISTROS DEL DÍA Y REPORTE GENERAL -->
                 <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <a href="historial.php?id=100&print=1" target="_blank" class="btn btn-dark btn-sm fw-bold px-3 py-2 rounded-pill shadow-sm">
+                        <i class="bi bi-printer-fill me-1"></i> Imprimir Membranas
+                    </a>
                     <button type="button" class="btn btn-outline-info btn-sm fw-bold px-3 py-2 rounded-pill shadow-sm" onclick="abrirModalRegistrosDia()">
                         <i class="bi bi-table me-1"></i> Ver Registros del Día
                     </button>
@@ -262,30 +475,29 @@ for ($h = 0; $h < 24; $h++) {
 
             <hr class="my-3 opacity-25">
 
-            <!-- SELECTOR DE FECHA, HORA AUTOMÁTICA Y OPERADOR -->
+            <!-- FECHA, HORA Y OPERADOR -->
             <div class="row g-3 align-items-center">
-                <div class="col-md-3">
-                    <label class="label-param d-block text-secondary"><i class="bi bi-calendar-event me-1"></i> Fecha</label>
-                    <input type="date" id="membrana_fecha" class="form-control form-control-sm fw-bold border-secondary-subtle" value="<?= date('Y-m-d') ?>" onchange="consultarLecturasPrevias()">
-                </div>
-                <div class="col-md-3">
+                <div class="col-sm-6 col-md-3">
                     <label class="label-param d-block text-secondary">
-                        <i class="bi bi-clock me-1"></i> Hora de Captura <span class="badge bg-success-subtle text-success small ms-1">Automática</span>
+                        <i class="bi bi-calendar-event me-1"></i> Fecha
                     </label>
-                    <select id="membrana_hora" class="form-select form-select-sm fw-bold border-secondary-subtle" onchange="consultarLecturasPrevias()">
-                        <?php foreach ($horasBloques as $hb): ?>
-                            <option value="<?= $hb ?>" <?= ($hb === $horaActualStr) ? 'selected' : '' ?>><?= $hb ?> hrs <?= ($hb === $horaActualStr) ? '(Hora Actual)' : '' ?></option>
-                        <?php endforeach; ?>
-                    </select>
+                    <input type="date" id="membrana_fecha" class="form-control form-control-sm fw-bold border-secondary-subtle bg-light" value="<?= date('Y-m-d') ?>" readonly tabindex="-1" style="pointer-events: none; cursor: not-allowed;">
                 </div>
-                <div class="col-md-6">
+                <div class="col-sm-6 col-md-4">
+                    <label class="label-param d-block text-secondary">
+                        <i class="bi bi-clock-fill me-1 text-primary"></i> Hora de Captura
+                    </label>
+                    <input type="hidden" id="membrana_hora" value="<?= $horaActualStr ?>">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-dark text-warning border-dark fw-bold"><i class="bi bi-lock-fill"></i></span>
+                        <input type="text" id="membrana_hora_display" class="form-control fw-bold bg-light text-dark border-secondary-subtle font-monospace" value="<?= $horaActualStr ?> hrs" readonly tabindex="-1" style="pointer-events: none; cursor: not-allowed;">
+                    </div>
+                </div>
+                <div class="col-12 col-md-5">
                     <label class="label-param d-block text-secondary"><i class="bi bi-person-badge me-1"></i> Operador Responsable</label>
                     <span class="badge bg-light text-dark border px-3 py-2 rounded-pill small fw-bold">
-                        <?= htmlspecialchars($_SESSION['nombre'] ?? 'Operador') ?> (<?= htmlspecialchars($_SESSION['nomina'] ?? 'N/A') ?>)
+                        <?= htmlspecialchars($_SESSION['nombre'] ?? 'Operador') ?>
                     </span>
-                    <button type="button" class="btn btn-link btn-sm text-decoration-none text-muted ms-2" onclick="fijarHoraActual()" title="Regresar a la hora exacta actual">
-                        <i class="bi bi-arrow-repeat"></i> Fijar hora actual
-                    </button>
                 </div>
             </div>
         </div>
@@ -370,26 +582,10 @@ for ($h = 0; $h < 24; $h++) {
                 <!-- Grilla de Paquetes de la Etapa -->
                 <div class="row g-3">
                     <?php foreach ($e['paquetes'] as $paqNum): ?>
-                        <div class="col-md-6 col-xl-<?php echo ($etapaNum == 1) ? '4' : '6'; ?>">
+                        <div class="col-12 col-md-6 col-lg-6 col-xl-<?php echo ($etapaNum == 1) ? '4' : '6'; ?>">
                             <?php renderizarTarjetaPaquete($paqNum, $etapaNum, $e); ?>
                         </div>
                     <?php endforeach; ?>
-                </div>
-
-                <!-- Barra de Guardado Inferior para la Etapa -->
-                <div class="card border-0 shadow-sm rounded-4 mt-4 p-3 bg-white border-start border-4" style="border-left-color: <?= $e['color'] ?> !important;">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <div>
-                            <span class="fw-bold text-dark"><i class="bi bi-check2-circle text-success me-1"></i> Finalizar captura de <?= $e['nombre'] ?></span>
-                            <p class="text-muted small m-0">Guarda únicamente los paquetes correspondientes a esta etapa.</p>
-                        </div>
-                        <div class="d-flex gap-2 align-items-center">
-                            <span id="status-etapa-foot-<?= $etapaNum ?>" class="text-muted small me-2"></span>
-                            <button type="button" class="btn btn-success fw-bold px-4 py-2 rounded-pill shadow-sm btn-guardar-etapa" id="btn-guardar-bot-<?= $etapaNum ?>" onclick="guardarEtapaIndividual(<?= $etapaNum ?>)">
-                                <i class="bi bi-save2-fill me-1"></i> Guardar <?= $e['nombre'] ?>
-                            </button>
-                        </div>
-                    </div>
                 </div>
 
             </div>
@@ -417,7 +613,7 @@ for ($h = 0; $h < 24; $h++) {
                     </div>
                     <div class="row g-3">
                         <?php foreach ($e['paquetes'] as $paqNum): ?>
-                            <div class="col-md-6 col-lg-4">
+                            <div class="col-12 col-md-6 col-lg-4 col-xl-3">
                                 <?php renderizarTarjetaPaquete($paqNum, $etapaNum, $e, 'general_'); ?>
                             </div>
                         <?php endforeach; ?>
@@ -438,13 +634,13 @@ function renderizarTarjetaPaquete($paqNum, $etapaNum, $etapaInfo, $prefijoId = '
     <div class="card-paquete paquete-operacion" id="card-paq-<?= $uid ?>" data-estado="OPERACION" data-paquete="<?= $paqNum ?>" data-etapa="<?= $etapaNum ?>">
         
         <!-- HEADER DEL PAQUETE (Sin badge repetitivo de "En Operación") -->
-        <div class="card-paquete-header">
-            <div class="d-flex align-items-center gap-2">
+        <div class="card-paquete-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <div class="d-flex align-items-center gap-1">
                 <span class="badge bg-dark rounded-pill px-3 py-1 fs-6">Paquete <?= $paqNum ?></span>
             </div>
 
             <!-- BOTONES DE EXCEPCIÓN (LAVADO / MMT / F.O.) -->
-            <div class="d-flex gap-1 flex-wrap justify-content-end">
+            <div class="d-flex gap-1 flex-nowrap justify-content-end">
                 <button type="button" class="btn btn-sm btn-outline-info btn-toggle-estado text-dark" id="btn-lav-<?= $uid ?>" onclick="toggleEstado('<?= $uid ?>', 'LAVADO')" title="En Lavado CIP">
                     <i class="bi bi-droplet-fill"></i> Lavado
                 </button>
@@ -474,30 +670,62 @@ function renderizarTarjetaPaquete($paqNum, $etapaNum, $etapaInfo, $prefijoId = '
                         <label class="label-param d-block">Presión Salida</label>
                         <input type="number" step="0.01" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="p_out_<?= $uid ?>" placeholder="0.00" oninput="calcularDeltaPaquete('<?= $uid ?>')">
                     </div>
-                    <div class="col-4">
-                        <label class="label-param d-block text-primary">Delta de Presión</label>
+                    <div class="col-4 text-center">
+                        <label class="label-param d-block text-primary">Delta Presión</label>
                         <div class="delta-badge" id="delta_display_<?= $uid ?>" title="Presión Entrada menos Presión Salida">0.00</div>
                     </div>
                 </div>
             </div>
 
-            <!-- SECCIÓN 2: CONTROL DE CONCENTRACIÓN BRIX -->
+            <!-- SECCIÓN 2: CONTROL DE CONCENTRACIÓN BRIX Y TEMPERATURA -->
             <div class="bg-light p-2 rounded-3 border mb-3">
-                <div class="text-uppercase fw-bold text-secondary mb-2" style="font-size: 0.68rem; letter-spacing: 0.5px;">
-                    <i class="bi bi-droplet-half text-success me-1"></i> Control de Brix (°Bx)
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-1 mb-2">
+                    <div class="text-uppercase fw-bold text-secondary" style="font-size: 0.68rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-droplet-half text-success me-1"></i> Control de Brix y Temperatura
+                    </div>
                 </div>
-                <div class="row g-2">
-                    <div class="col-4">
-                        <label class="label-param d-block">Brix Entrada</label>
-                        <input type="number" step="0.1" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="brix_in_<?= $uid ?>" placeholder="0.0">
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between align-items-center mb-1 flex-nowrap">
+                            <span class="label-param m-0 fw-bold text-dark text-truncate">Brix Entrada</span>
+                            <span id="badge_brix_serie_<?= $uid ?>" class="badge rounded-pill bg-success-subtle text-success border border-success-subtle d-none" style="font-size: 0.58rem; padding: 2px 5px; flex-shrink: 0;">Inicial</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.1" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="brix_in_<?= $uid ?>" placeholder="0.0" oninput="sincronizarInputPaquete('<?= $uid ?>', 'brix_in')">
+                            <span class="input-group-text px-1 bg-white text-muted" style="font-size: 0.68rem;">°Bx</span>
+                        </div>
                     </div>
-                    <div class="col-4">
-                        <label class="label-param d-block">Brix Salida</label>
-                        <input type="number" step="0.1" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="brix_out_<?= $uid ?>" placeholder="0.0">
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between align-items-center mb-1 flex-nowrap">
+                            <span class="label-param m-0 fw-bold text-dark text-truncate">Brix Salida</span>
+                            <span class="badge rounded-pill bg-light text-secondary border" style="font-size: 0.58rem; padding: 2px 5px; flex-shrink: 0;" title="Se envía automáticamente al Brix Entrada del siguiente paquete activo">→ Sig.</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.1" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="brix_out_<?= $uid ?>" placeholder="0.0" oninput="alCambiarBrixSalida('<?= $uid ?>')">
+                            <span class="input-group-text px-1 bg-white text-muted" style="font-size: 0.68rem;">°Bx</span>
+                        </div>
                     </div>
-                    <div class="col-4">
-                        <label class="label-param d-block">Brix Permeado</label>
-                        <input type="number" step="0.1" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="brix_perm_<?= $uid ?>" placeholder="0.0">
+                </div>
+                <div class="row g-2 pt-2 border-top">
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between align-items-center mb-1 flex-nowrap">
+                            <span class="label-param m-0 fw-bold text-dark text-truncate">Permeado</span>
+                            <span id="sem_perm_<?= $uid ?>" class="badge rounded-pill bg-light text-muted border" style="font-size: 0.58rem; padding: 2px 5px; flex-shrink: 0;" title="Verde: < 0.1 | Amarillo: 0.1 - 0.5 | Rojo: > 0.5">&lt;0.1</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.01" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="brix_perm_<?= $uid ?>" placeholder="0.00" oninput="evaluarSemaforoMembrana('<?= $uid ?>', true)">
+                            <span class="input-group-text px-1 bg-white text-muted" style="font-size: 0.68rem;">°Bx</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex justify-content-between align-items-center mb-1 flex-nowrap">
+                            <span class="label-param m-0 fw-bold text-dark text-truncate"><i class="bi bi-thermometer-half text-danger"></i> Temp.</span>
+                            <span id="sem_temp_<?= $uid ?>" class="badge rounded-pill bg-light text-muted border" style="font-size: 0.58rem; padding: 2px 5px; flex-shrink: 0;" title="Verde: 45 - 55 °C | Amarillo: 40 - 44.9 y 56 - 60 °C | Rojo: < 39 o > 60 °C">45-55°</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.1" class="form-control form-control-sm input-metrica input-campo-<?= $uid ?> input-etapa-<?= $etapaNum ?>" id="temp_<?= $uid ?>" placeholder="45.0" oninput="evaluarSemaforoMembrana('<?= $uid ?>', true)">
+                            <span class="input-group-text px-1 bg-white text-muted" style="font-size: 0.68rem;">°C</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -525,16 +753,38 @@ const ETAPAS_CONFIG = {
     4: [12, 13]
 };
 
+// Orden en serie paquete por paquete (Etapa 1 -> Etapa 2 -> Etapa 3 -> Etapa 4)
+const ORDEN_SERIE_PAQUETES = [1, 2, 3, 4, 9, 5, 6, 7, 8, 10, 11, 12, 13];
+
 // Variables para rastrear etapas y paquetes bloqueados para la hora actual seleccionada
 let etapasBloqueadas = {};
 let paquetesBloqueados = {};
 
-function fijarHoraActual() {
+function verificarHoraAutomatica() {
     const ahora = new Date();
     const horaActual = String(ahora.getHours()).padStart(2, '0') + ':00';
-    const selectHora = document.getElementById('membrana_hora');
-    if (selectHora) {
-        selectHora.value = horaActual;
+    const yyyy = ahora.getFullYear();
+    const mm = String(ahora.getMonth() + 1).padStart(2, '0');
+    const dd = String(ahora.getDate()).padStart(2, '0');
+    const fechaActual = `${yyyy}-${mm}-${dd}`;
+
+    const inputHora = document.getElementById('membrana_hora');
+    const displayHora = document.getElementById('membrana_hora_display');
+    const inputFecha = document.getElementById('membrana_fecha');
+
+    let cambio = false;
+    if (inputFecha && inputFecha.value !== fechaActual) {
+        inputFecha.value = fechaActual;
+        cambio = true;
+    }
+    if (inputHora && inputHora.value !== horaActual) {
+        inputHora.value = horaActual;
+        if (displayHora) {
+            displayHora.value = `${horaActual} hrs (Hora Actual del Sistema)`;
+        }
+        cambio = true;
+    }
+    if (cambio) {
         consultarLecturasPrevias();
     }
 }
@@ -556,20 +806,9 @@ function calcularDeltaPaquete(uid) {
     if (delta < 0) delta = 0;
 
     deltaDisplay.textContent = delta.toFixed(2);
-
-    if (delta >= 1.8) {
-        deltaDisplay.style.color = '#dc3545';
-        deltaDisplay.style.backgroundColor = '#ffeef0';
-        deltaDisplay.style.borderColor = '#dc3545';
-    } else if (delta >= 1.2) {
-        deltaDisplay.style.color = '#e49a32';
-        deltaDisplay.style.backgroundColor = '#fffbeb';
-        deltaDisplay.style.borderColor = '#e49a32';
-    } else {
-        deltaDisplay.style.color = '#0f766e';
-        deltaDisplay.style.backgroundColor = '#f1f5f9';
-        deltaDisplay.style.borderColor = '#cbd5e1';
-    }
+    deltaDisplay.style.color = '#475569';
+    deltaDisplay.style.backgroundColor = '#f1f5f9';
+    deltaDisplay.style.borderColor = '#cbd5e1';
 
     // Sincronizar con la otra pestaña (Individual <-> General)
     const uidSinc = uid.startsWith('general_') ? uid.replace('general_', '') : 'general_' + uid;
@@ -593,6 +832,237 @@ function sincronizarInputPaquete(uid, prefijo) {
     const inpSinc = document.getElementById(prefijo + '_' + uidSinc);
     if (inpSinc && inpSinc.value !== inp.value) {
         inpSinc.value = inp.value;
+    }
+}
+
+// =========================================================================
+// PROPAGACIÓN AUTOMÁTICA EN SERIE DE BRIX (1→2→3→4→9 → 5→6→7→8 → 10→11 → 12→13)
+// El Brix de Salida de cada paquete activo pasa al Brix de Entrada del siguiente
+// =========================================================================
+function alCambiarBrixSalida(uid) {
+    sincronizarInputPaquete(uid, 'brix_out');
+    propagarBrixEnSerie();
+}
+
+function propagarBrixEnSerie() {
+    let brixParaSiguiente = null; // Valor que recibirá el siguiente paquete activo
+    let paqOrigen = null;
+
+    ORDEN_SERIE_PAQUETES.forEach(pNum => {
+        const uid = pNum.toString();
+        const card = document.getElementById('card-paq-' + uid);
+        const estado = card ? (card.getAttribute('data-estado') || 'OPERACION') : 'OPERACION';
+
+        const bIn = document.getElementById('brix_in_' + uid);
+        const bInGen = document.getElementById('brix_in_general_' + uid);
+        const bOut = document.getElementById('brix_out_' + uid);
+        const bOutGen = document.getElementById('brix_out_general_' + uid);
+        const badge = document.getElementById('badge_brix_serie_' + uid);
+        const badgeGen = document.getElementById('badge_brix_serie_general_' + uid);
+
+        // Si el paquete está en F.O., LAVADO o MMT, NO tiene ni recibe Brix de Entrada ni de Salida (no se guarda nada)
+        if (estado !== 'OPERACION') {
+            [badge, badgeGen].forEach(b => {
+                if (b) {
+                    b.classList.remove('d-none');
+                    b.className = 'badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle';
+                    b.style.fontSize = '0.58rem';
+                    b.style.padding = '2px 6px';
+                    b.textContent = estado === 'FO' ? 'F.O. (Fuera de Operación)' : estado;
+                    b.title = 'Paquete no operativo: sin datos de Brix';
+                }
+            });
+            [bIn, bInGen].forEach(inp => {
+                if (inp) {
+                    inp.value = '';
+                    inp.readOnly = true;
+                    inp.placeholder = '--';
+                    inp.style.backgroundColor = '#f1f5f9';
+                    inp.style.borderColor = '';
+                }
+            });
+            [bOut, bOutGen].forEach(inp => {
+                if (inp) {
+                    inp.value = '';
+                    inp.readOnly = true;
+                    inp.placeholder = '--';
+                }
+            });
+            // Este paquete en F.O. no modifica brixParaSiguiente ni paqOrigen; el siguiente activo recibirá el del último activo previo
+            return;
+        }
+
+        // Si el paquete ESTÁ EN OPERACIÓN:
+        if (paqOrigen === null) {
+            // Es el primer paquete activo de la serie (usualmente Paquete 1)
+            [badge, badgeGen].forEach(b => {
+                if (b) {
+                    b.classList.remove('d-none');
+                    b.className = 'badge rounded-pill bg-success-subtle text-success border border-success-subtle';
+                    b.style.fontSize = '0.58rem';
+                    b.style.padding = '2px 5px';
+                    b.textContent = 'Inicial';
+                    b.title = 'Primer paquete en operación: ingresa aquí el Brix de Entrada inicial';
+                }
+            });
+            if (!paquetesBloqueados[pNum]) {
+                [bIn, bInGen].forEach(inp => {
+                    if (inp) {
+                        inp.readOnly = false;
+                        inp.placeholder = '0.0';
+                        inp.style.backgroundColor = '';
+                        inp.style.borderColor = '';
+                        inp.style.fontWeight = '600';
+                    }
+                });
+            }
+        } else {
+            // Es un paquete subsecuente activo: recibe ÚNICAMENTE el Brix Salida del paquete activo anterior
+            const tieneBrixAnterior = (brixParaSiguiente !== null && brixParaSiguiente !== '');
+            [badge, badgeGen].forEach(b => {
+                if (b) {
+                    b.classList.remove('d-none');
+                    if (tieneBrixAnterior) {
+                        b.className = 'badge rounded-pill bg-primary text-white';
+                        b.textContent = `Auto P${paqOrigen}`;
+                        b.title = `Toma automáticamente el Brix de Salida del Paquete ${paqOrigen}`;
+                    } else {
+                        b.className = 'badge rounded-pill bg-secondary-subtle text-secondary border';
+                        b.textContent = `Pend. P${paqOrigen}`;
+                        b.title = `Esperando a que se ingrese el Brix de Salida en el Paquete ${paqOrigen}`;
+                    }
+                    b.style.fontSize = '0.58rem';
+                    b.style.padding = '2px 5px';
+                }
+            });
+
+            if (!paquetesBloqueados[pNum]) {
+                [bIn, bInGen].forEach(inp => {
+                    if (inp) {
+                        inp.value = tieneBrixAnterior ? brixParaSiguiente : '';
+                        inp.readOnly = true;
+                        inp.placeholder = tieneBrixAnterior ? `Auto (P${paqOrigen})` : `Pendiente P${paqOrigen}`;
+                        inp.style.backgroundColor = tieneBrixAnterior ? '#eff6ff' : '#f8fafc';
+                        inp.style.borderColor = tieneBrixAnterior ? '#3b82f6' : '';
+                        inp.style.fontWeight = '800';
+                    }
+                });
+            }
+        }
+
+        // Habilitar salida de este paquete si no está bloqueado
+        if (!paquetesBloqueados[pNum]) {
+            [bOut, bOutGen].forEach(inp => {
+                if (inp) {
+                    inp.readOnly = false;
+                    inp.placeholder = '0.0';
+                }
+            });
+        }
+
+        // El Brix que pasará al SIGUIENTE paquete activo es ÚNICAMENTE el que se escriba en la salida de ESTE paquete
+        const valOut = (bOut && bOut.value.trim() !== '') ? bOut.value.trim() : ((bOutGen && bOutGen.value.trim() !== '') ? bOutGen.value.trim() : '');
+        brixParaSiguiente = (valOut !== '') ? valOut : null;
+        paqOrigen = pNum;
+    });
+}
+
+// =========================================================================
+// SEMÁFORO EN TIEMPO REAL PARA PERMEADO (°Bx) Y TEMPERATURA (°C)
+// =========================================================================
+function evaluarSemaforoMembrana(uid, sincronizar = false) {
+    const permInput = document.getElementById('brix_perm_' + uid);
+    const permBadge = document.getElementById('sem_perm_' + uid);
+    const tempInput = document.getElementById('temp_' + uid);
+    const tempBadge = document.getElementById('sem_temp_' + uid);
+
+    // 1. Evaluar Permeado: < 0.1 Verde | 0.1 - 0.5 Amarillo | > 0.5 Rojo
+    if (permInput) {
+        const rawPerm = permInput.value.trim();
+        if (rawPerm === '' || isNaN(parseFloat(rawPerm))) {
+            permInput.style.backgroundColor = '';
+            permInput.style.borderColor = '';
+            permInput.style.color = '';
+            if (permBadge) {
+                permBadge.className = 'badge rounded-pill bg-light text-muted border';
+                permBadge.textContent = '<0.1';
+            }
+        } else {
+            const valP = parseFloat(rawPerm);
+            if (valP < 0.1) {
+                permInput.style.backgroundColor = '#dcfce7';
+                permInput.style.borderColor = '#16a34a';
+                permInput.style.color = '#14532d';
+                if (permBadge) {
+                    permBadge.className = 'badge rounded-pill bg-success text-white';
+                    permBadge.textContent = 'Óptimo';
+                }
+            } else if (valP >= 0.1 && valP <= 0.5) {
+                permInput.style.backgroundColor = '#fef9c3';
+                permInput.style.borderColor = '#eab308';
+                permInput.style.color = '#713f12';
+                if (permBadge) {
+                    permBadge.className = 'badge rounded-pill bg-warning text-dark';
+                    permBadge.textContent = 'Alerta';
+                }
+            } else {
+                permInput.style.backgroundColor = '#fee2e2';
+                permInput.style.borderColor = '#dc2626';
+                permInput.style.color = '#7f1d1d';
+                if (permBadge) {
+                    permBadge.className = 'badge rounded-pill bg-danger text-white';
+                    permBadge.textContent = 'Crítico';
+                }
+            }
+        }
+    }
+
+    // 2. Evaluar Temperatura: 45-55 Verde | 40-44.9 y 56-60 Amarillo | <39 (o <40) y >60 Rojo
+    if (tempInput) {
+        const rawTemp = tempInput.value.trim();
+        if (rawTemp === '' || isNaN(parseFloat(rawTemp))) {
+            tempInput.style.backgroundColor = '';
+            tempInput.style.borderColor = '';
+            tempInput.style.color = '';
+            if (tempBadge) {
+                tempBadge.className = 'badge rounded-pill bg-light text-muted border';
+                tempBadge.textContent = '45-55°';
+            }
+        } else {
+            const valT = parseFloat(rawTemp);
+            if (valT >= 45 && valT <= 55) {
+                tempInput.style.backgroundColor = '#dcfce7';
+                tempInput.style.borderColor = '#16a34a';
+                tempInput.style.color = '#14532d';
+                if (tempBadge) {
+                    tempBadge.className = 'badge rounded-pill bg-success text-white';
+                    tempBadge.textContent = 'Óptimo';
+                }
+            } else if ((valT >= 40 && valT < 45) || (valT > 55 && valT <= 60)) {
+                tempInput.style.backgroundColor = '#fef9c3';
+                tempInput.style.borderColor = '#eab308';
+                tempInput.style.color = '#713f12';
+                if (tempBadge) {
+                    tempBadge.className = 'badge rounded-pill bg-warning text-dark';
+                    tempBadge.textContent = 'Alerta';
+                }
+            } else {
+                tempInput.style.backgroundColor = '#fee2e2';
+                tempInput.style.borderColor = '#dc2626';
+                tempInput.style.color = '#7f1d1d';
+                if (tempBadge) {
+                    tempBadge.className = 'badge rounded-pill bg-danger text-white';
+                    tempBadge.textContent = 'Crítico';
+                }
+            }
+        }
+    }
+
+    if (sincronizar) {
+        sincronizarInputPaquete(uid, 'brix_perm');
+        sincronizarInputPaquete(uid, 'temp');
+        const uidSinc = uid.startsWith('general_') ? uid.replace('general_', '') : 'general_' + uid;
+        evaluarSemaforoMembrana(uidSinc, false);
     }
 }
 
@@ -627,6 +1097,7 @@ function toggleEstado(uid, estadoObjetivo) {
     if (document.getElementById('card-paq-' + uidSincronizado)) {
         aplicarEstadoPaquete(uidSincronizado, nuevoEstado);
     }
+    propagarBrixEnSerie();
 }
 
 function aplicarEstadoPaquete(uid, estado) {
@@ -686,8 +1157,13 @@ function aplicarEstadoPaquete(uid, estado) {
     const enExcepcion = (estado !== 'OPERACION');
 
     if (enExcepcion && !estaBloq) {
-        // Limpiar todos los datos y restablecer Delta a 0.00 cuando está en Lavado, MMT o F.O.
+        // Limpiar absolutamente todos los datos y restablecer cuando está en F.O., Lavado o MMT (no se guarda nada)
         campos.forEach(c => { c.value = ''; });
+        const bIn = document.getElementById('brix_in_' + uid);
+        const bOut = document.getElementById('brix_out_' + uid);
+        if (bIn) bIn.value = '';
+        if (bOut) bOut.value = '';
+
         const deltaDisplay = document.getElementById('delta_display_' + uid);
         if (deltaDisplay) {
             deltaDisplay.textContent = '0.00';
@@ -695,6 +1171,7 @@ function aplicarEstadoPaquete(uid, estado) {
             deltaDisplay.style.backgroundColor = '#e9ecef';
             deltaDisplay.style.borderColor = '#cbd5e1';
         }
+        evaluarSemaforoMembrana(uid, false);
     }
 
     campos.forEach(c => {
@@ -731,6 +1208,7 @@ function marcarEtapa(etapaNum, estado) {
                 }
             }
         });
+        propagarBrixEnSerie();
     }
 }
 
@@ -762,6 +1240,7 @@ async function guardarPaqueteIndividual(paqNum, etapaNum) {
     const bInVal   = esOperacion ? (document.getElementById('brix_in_' + uid)?.value || document.getElementById('brix_in_general_' + uid)?.value || '') : '';
     const bOutVal  = esOperacion ? (document.getElementById('brix_out_' + uid)?.value || document.getElementById('brix_out_general_' + uid)?.value || '') : '';
     const bPermVal = esOperacion ? (document.getElementById('brix_perm_' + uid)?.value || document.getElementById('brix_perm_general_' + uid)?.value || '') : '';
+    const tempVal  = esOperacion ? (document.getElementById('temp_' + uid)?.value || document.getElementById('temp_general_' + uid)?.value || '') : '';
     const obsVal   = esOperacion ? (document.getElementById('obs_' + uid)?.value || document.getElementById('obs_general_' + uid)?.value || '') : '';
 
     const paquetesData = [{
@@ -773,6 +1252,7 @@ async function guardarPaqueteIndividual(paqNum, etapaNum) {
         brix_entrada: bInVal,
         brix_salida: bOutVal,
         brix_permeado: bPermVal,
+        temperatura: tempVal,
         observaciones: obsVal
     }];
 
@@ -868,6 +1348,7 @@ async function guardarEtapaIndividual(etapaNum) {
         const bInVal   = esOperacion ? (document.getElementById('brix_in_' + uid)?.value || '') : '';
         const bOutVal  = esOperacion ? (document.getElementById('brix_out_' + uid)?.value || '') : '';
         const bPermVal = esOperacion ? (document.getElementById('brix_perm_' + uid)?.value || '') : '';
+        const tempVal  = esOperacion ? (document.getElementById('temp_' + uid)?.value || '') : '';
         const obsVal   = esOperacion ? (document.getElementById('obs_' + uid)?.value || '') : '';
 
         paquetesData.push({
@@ -879,6 +1360,7 @@ async function guardarEtapaIndividual(etapaNum) {
             brix_entrada: bInVal,
             brix_salida: bOutVal,
             brix_permeado: bPermVal,
+            temperatura: tempVal,
             observaciones: obsVal
         });
     });
@@ -972,7 +1454,7 @@ async function consultarLecturasPrevias() {
             ['', 'general_'].forEach(pref => {
                 const uid = pref + p;
                 aplicarEstadoPaquete(uid, 'OPERACION');
-                ['p_in_', 'p_out_', 'brix_in_', 'brix_out_', 'brix_perm_', 'obs_'].forEach(f => {
+                ['p_in_', 'p_out_', 'brix_in_', 'brix_out_', 'brix_perm_', 'temp_', 'obs_'].forEach(f => {
                     const el = document.getElementById(f + uid);
                     if (el) {
                         el.value = '';
@@ -981,6 +1463,7 @@ async function consultarLecturasPrevias() {
                     }
                 });
                 calcularDeltaPaquete(uid);
+                evaluarSemaforoMembrana(uid, false);
 
                 const btnPaq = document.getElementById('btn-guardar-paq-' + uid);
                 if (btnPaq) {
@@ -1042,6 +1525,7 @@ async function consultarLecturasPrevias() {
                     const bIn = document.getElementById('brix_in_' + uid);
                     const bOut = document.getElementById('brix_out_' + uid);
                     const bPerm = document.getElementById('brix_perm_' + uid);
+                    const temp = document.getElementById('temp_' + uid);
                     const obs = document.getElementById('obs_' + uid);
 
                     if (pIn && datos.presion_entrada !== null) pIn.value = datos.presion_entrada;
@@ -1049,9 +1533,11 @@ async function consultarLecturasPrevias() {
                     if (bIn && datos.brix_entrada !== null) bIn.value = datos.brix_entrada;
                     if (bOut && datos.brix_salida !== null) bOut.value = datos.brix_salida;
                     if (bPerm && datos.brix_permeado !== null) bPerm.value = datos.brix_permeado;
+                    if (temp && datos.temperatura !== undefined && datos.temperatura !== null) temp.value = datos.temperatura;
                     if (obs && datos.observaciones !== null) obs.value = datos.observaciones;
 
                     calcularDeltaPaquete(uid);
+                    evaluarSemaforoMembrana(uid, false);
 
                     // Bloquear inputs de este paquete individual
                     document.querySelectorAll('.input-campo-' + uid).forEach(inp => {
@@ -1115,25 +1601,31 @@ async function consultarLecturasPrevias() {
                 }
             }
         }
+        // Propagar Brix en serie desde los paquetes guardados/activos hacia los siguientes pendientes
+        propagarBrixEnSerie();
     } catch (err) {
         console.error('Error consultando lecturas previas:', err);
     }
 }
 
 // =========================================================================
-// MODAL DE CONSULTA DE REGISTROS DEL DÍA EN MEMBRANAS
+// MODAL DE CONSULTA DE REGISTROS DEL DÍA EN MEMBRANAS (FORMATO HOJA FÍSICA)
 // =========================================================================
 let registrosDiaCache = [];
+let modoColsModalSabana = 2; // 2 = Hoja Física (Presión Entrada + Sólidos Salida), 4 = +Permeado/Temp, 7 = Expandida
+let turnoFiltroModalSabana = 'ambos';
 
 async function abrirModalRegistrosDia() {
     const fecha = document.getElementById('membrana_fecha').value || new Date().toISOString().split('T')[0];
     const modalEl = document.getElementById('modalRegistrosDia');
     const tbody = document.getElementById('tbodyModalRegistros');
+    const contSabana = document.getElementById('contenedorSabanaModalDia');
     const conteo = document.getElementById('conteoRegistrosModal');
     const titulo = document.getElementById('tituloModalRegistrosDia');
 
-    if (titulo) titulo.textContent = `Registros de Membranas - ${fecha}`;
-    if (tbody) tbody.innerHTML = `<tr><td colspan="12" class="py-4 text-center text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Obteniendo registros del ${fecha}...</td></tr>`;
+    if (titulo) titulo.textContent = `Bitácora de Operación de Membranas — ${fecha}`;
+    if (contSabana) contSabana.innerHTML = `<div class="py-5 text-center text-muted bg-white rounded-3 border"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando bitácora del ${fecha}...</div>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="13" class="py-4 text-center text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div> Obteniendo registros del ${fecha}...</td></tr>`;
     if (conteo) conteo.textContent = 'Cargando...';
 
     const modal = new bootstrap.Modal(modalEl);
@@ -1147,19 +1639,304 @@ async function abrirModalRegistrosDia() {
         });
         const res = await resp.json();
 
-        if (res.success && res.registros && res.registros.length > 0) {
-            registrosDiaCache = res.registros;
-            if (conteo) conteo.textContent = `${res.registros.length} Lecturas Registradas`;
-            renderizarTablaModal(res.registros);
-        } else {
-            registrosDiaCache = [];
-            if (conteo) conteo.textContent = '0 Lecturas';
-            if (tbody) tbody.innerHTML = `<tr><td colspan="12" class="py-5 text-center text-muted fs-6"><i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>No se han guardado lecturas de Membranas para el ${fecha}.</td></tr>`;
-        }
+        registrosDiaCache = (res.success && Array.isArray(res.registros)) ? res.registros : [];
+        if (conteo) conteo.textContent = `${registrosDiaCache.length} Lecturas Registradas`;
+
+        renderizarSabanaModalDia(registrosDiaCache, fecha);
+        renderizarTablaModal(registrosDiaCache);
     } catch (e) {
         console.error(e);
-        if (tbody) tbody.innerHTML = `<tr><td colspan="12" class="py-4 text-center text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Error al consultar los registros del servidor.</td></tr>`;
+        if (contSabana) contSabana.innerHTML = `<div class="py-4 text-center text-danger bg-white rounded-3 border"><i class="bi bi-exclamation-triangle-fill me-2"></i>Error al consultar los registros del servidor.</div>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="13" class="py-4 text-center text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Error al consultar los registros del servidor.</td></tr>`;
     }
+}
+
+function cambiarVistaInternaModalDia(vista) {
+    const sabanaWrapper = document.getElementById('wrapperSabanaModalDia');
+    const listaWrapper = document.getElementById('wrapperListaModalDia');
+    const btnSab = document.getElementById('btnModalVistaSabana');
+    const btnLis = document.getElementById('btnModalVistaLista');
+    const grpCols = document.getElementById('grpColsModalSabana');
+
+    if (vista === 'lista') {
+        if (sabanaWrapper) sabanaWrapper.classList.add('d-none');
+        if (listaWrapper) listaWrapper.classList.remove('d-none');
+        if (grpCols) grpCols.classList.add('d-none');
+        if (btnSab) btnSab.className = 'btn btn-outline-dark btn-sm fw-bold';
+        if (btnLis) btnLis.className = 'btn btn-dark btn-sm fw-bold active';
+    } else {
+        if (sabanaWrapper) sabanaWrapper.classList.remove('d-none');
+        if (listaWrapper) listaWrapper.classList.add('d-none');
+        if (grpCols) grpCols.classList.remove('d-none');
+        if (btnSab) btnSab.className = 'btn btn-dark btn-sm fw-bold active';
+        if (btnLis) btnLis.className = 'btn btn-outline-dark btn-sm fw-bold';
+    }
+}
+
+function cambiarColsModalSabana(cols) {
+    modoColsModalSabana = cols;
+    const fecha = document.getElementById('membrana_fecha').value || new Date().toISOString().split('T')[0];
+    renderizarSabanaModalDia(registrosDiaCache, fecha);
+
+    const b2 = document.getElementById('btnModalCols2');
+    const b4 = document.getElementById('btnModalCols4');
+    const b7 = document.getElementById('btnModalCols7');
+    if (b2) b2.className = (cols === 2) ? 'btn btn-primary btn-sm fw-bold active' : 'btn btn-outline-primary btn-sm fw-bold';
+    if (b4) b4.className = (cols === 4) ? 'btn btn-primary btn-sm fw-bold active' : 'btn btn-outline-primary btn-sm fw-bold';
+    if (b7) b7.className = (cols === 7) ? 'btn btn-primary btn-sm fw-bold active' : 'btn btn-outline-primary btn-sm fw-bold';
+}
+
+function cambiarTurnoModalSabana(turno) {
+    turnoFiltroModalSabana = turno;
+    const fecha = document.getElementById('membrana_fecha').value || new Date().toISOString().split('T')[0];
+    renderizarSabanaModalDia(registrosDiaCache, fecha);
+}
+
+function renderizarSabanaModalDia(registros, fechaStr) {
+    const cont = document.getElementById('contenedorSabanaModalDia');
+    if (!cont) return;
+
+    const etapasDef = [
+        { num: 1, paquetes: [1, 2, 3, 4, 9] },
+        { num: 2, paquetes: [5, 6, 7, 8] },
+        { num: 3, paquetes: [10, 11] },
+        { num: 4, paquetes: [12, 13] }
+    ];
+    const ordenSerie = [1, 2, 3, 4, 9, 5, 6, 7, 8, 10, 11, 12, 13];
+
+    // Mapear lecturas por hora ("HH:00") y paquete
+    const mapaPorHoraPaq = {};
+    (registros || []).forEach(r => {
+        let hRaw = (r.hora || '').trim();
+        let hNum = 0;
+        if (hRaw.includes(':')) {
+            hNum = parseInt(hRaw.split(':')[0], 10);
+        } else if (r.fecha_registro && r.fecha_registro.includes(' ')) {
+            hNum = parseInt(r.fecha_registro.split(' ')[1].split(':')[0], 10);
+        }
+        const hKey = String(isNaN(hNum) ? 0 : hNum).padStart(2, '0') + ':00';
+        const pNum = parseInt(r.paquete_numero, 10);
+        if (!mapaPorHoraPaq[hKey]) mapaPorHoraPaq[hKey] = {};
+        mapaPorHoraPaq[hKey][pNum] = r;
+    });
+
+    const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const mesesCortos = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const partesF = fechaStr.split('-');
+    const objFecha = new Date(parseInt(partesF[0], 10), parseInt(partesF[1], 10) - 1, parseInt(partesF[2], 10));
+    const nombreDia = diasSemana[objFecha.getDay()] || '';
+    const diaFormateado = `${partesF[2]}-${mesesCortos[objFecha.getMonth()]}-${partesF[0].slice(-2)}`;
+
+    const turnosDef = [
+        {
+            key: 'matutino',
+            nombre: 'Día',
+            horas: ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00']
+        },
+        {
+            key: 'nocturno',
+            nombre: 'Noche',
+            horas: ['19:00','20:00','21:00','22:00','23:00','00:00','01:00','02:00','03:00','04:00','05:00','06:00']
+        }
+    ];
+
+    const clsModoTabla = (modoColsModalSabana === 2)
+        ? 'modo-hoja-fisica'
+        : (modoColsModalSabana === 4 ? 'modo-compacto' : '');
+
+    let htmlTotal = '';
+
+    turnosDef.forEach(t => {
+        if (turnoFiltroModalSabana !== 'ambos' && turnoFiltroModalSabana !== t.key) return;
+
+        // Recolectar operadores del turno
+        const opsSet = new Set();
+        t.horas.forEach(hk => {
+            const mp = mapaPorHoraPaq[hk] || {};
+            Object.values(mp).forEach(rm => {
+                if (rm.operador_nomina) opsSet.add(rm.operador_nomina);
+            });
+        });
+        const opsStr = opsSet.size > 0 ? Array.from(opsSet).join(', ') : 'Sin registro';
+
+        htmlTotal += `
+        <div class="bitacora-sabana-sheet">
+            <div class="bitacora-sabana-top">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="bitacora-campo-linea">DÍA: <span>${diaFormateado}</span></div>
+                        <div class="bitacora-campo-linea">FECHA: <span>${nombreDia}</span></div>
+                    </div>
+                    <div class="bitacora-titulo-caja">BITÁCORA DE OPERACIÓN DE MEMBRANAS</div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <div class="bitacora-campo-linea">TURNO: <span>${t.nombre}</span></div>
+                        <div class="bitacora-campo-linea">OPERADOR: <span>${opsStr}</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="tabla-sabana-membranas ${clsModoTabla}">
+                    <thead>
+                        <tr class="row-etapa">
+                            <th rowspan="3" class="sticky-col-hora">HORA</th>
+                            <th rowspan="3" style="min-width: 60px; border-right: 1.5px solid #000 !important;"># Lote /<br>Operador</th>
+                            <th rowspan="3" class="borde-fin-etapa" style="min-width: 56px;">Sólidos<br>de entrada</th>
+                            ${etapasDef.map(e => `<th colspan="${e.paquetes.length * modoColsModalSabana}" class="borde-fin-etapa">ETAPA ${e.num}</th>`).join('')}
+                            <th rowspan="2" class="borde-fin-etapa" style="min-width: 62px; background-color: #e2e8f0 !important; color: #000 !important;">Salida de<br>Membranas</th>
+                            <th rowspan="4" style="min-width: 80px;">OBSERVACIONES</th>
+                        </tr>
+                        <tr class="row-paquete">
+                            ${etapasDef.map(e => e.paquetes.map((p, idx) => {
+                                const clsB = (idx === e.paquetes.length - 1) ? 'borde-fin-etapa' : 'borde-fin-paquete';
+                                return `<th colspan="${modoColsModalSabana}" class="${clsB}">Paquete ${p}</th>`;
+                            }).join('')).join('')}
+                        </tr>
+                        <tr class="row-param-nom">
+                            ${etapasDef.map(e => e.paquetes.map((p, idx) => {
+                                const clsB = (idx === e.paquetes.length - 1) ? 'borde-fin-etapa' : 'borde-fin-paquete';
+                                return `
+                                    <th>Presión<br>Entrada</th>
+                                    <th class="col-extra-memb">Presión<br>Salida</th>
+                                    <th class="col-extra-memb">Delta<br>ΔP</th>
+                                    <th class="col-extra-memb">Brix<br>Entrada</th>
+                                    <th class="${clsB}">Sólidos<br>Salida</th>
+                                    <th class="col-semaforo-memb">Permeado<br>(°Bx)</th>
+                                    <th class="col-semaforo-memb ${clsB}">Temp.<br>(°C)</th>
+                                `;
+                            }).join('')).join('')}
+                            <th class="borde-fin-etapa">%<br>Sólidos</th>
+                        </tr>
+                        <tr class="row-param-rango">
+                            <th class="sticky-col-hora" style="font-size: 0.60rem !important;">MIN %</th>
+                            <th class="th-rango-pendiente" style="border-right: 1.5px solid #000 !important;">Pendiente</th>
+                            <th class="th-rango-pendiente borde-fin-etapa">Pendiente</th>
+                            ${etapasDef.map(e => e.paquetes.map((p, idx) => {
+                                const clsB = (idx === e.paquetes.length - 1) ? 'borde-fin-etapa' : 'borde-fin-paquete';
+                                return `
+                                    <th class="th-rango-pendiente">Pendiente</th>
+                                    <th class="th-rango-pendiente col-extra-memb">Pendiente</th>
+                                    <th class="th-rango-pendiente col-extra-memb">Pendiente</th>
+                                    <th class="th-rango-pendiente col-extra-memb">Pendiente</th>
+                                    <th class="th-rango-pendiente ${clsB}">Pendiente</th>
+                                    <th class="th-rango-semaforo col-semaforo-memb">&lt;0.1 V<br><span style="font-size:0.53rem;">0.1-0.5 A | &gt;0.5 R</span></th>
+                                    <th class="th-rango-semaforo col-semaforo-memb ${clsB}">45-55 °C<br><span style="font-size:0.53rem;">&lt;39 / &gt;60 R</span></th>
+                                `;
+                            }).join('')).join('')}
+                            <th class="th-rango-pendiente borde-fin-etapa">Pendiente</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        t.horas.forEach(hk => {
+            const mp = mapaPorHoraPaq[hk] || {};
+            let opHora = '';
+            let solidosIn = '';
+            let solidosOutFin = '';
+            const obsArr = [];
+
+            ordenSerie.forEach(pNum => {
+                const rm = mp[pNum];
+                if (rm) {
+                    if (!opHora && rm.operador_nomina) opHora = rm.operador_nomina;
+                    if (rm.observaciones) obsArr.push(`P${pNum}: ${rm.observaciones}`);
+                    if ((rm.estado || 'OPERACION').toUpperCase() === 'OPERACION') {
+                        if (solidosIn === '' && rm.brix_entrada !== null && rm.brix_entrada !== '') {
+                            solidosIn = parseFloat(rm.brix_entrada).toFixed(1);
+                        }
+                        if (rm.brix_salida !== null && rm.brix_salida !== '') {
+                            solidosOutFin = parseFloat(rm.brix_salida).toFixed(1);
+                        }
+                    }
+                }
+            });
+
+            htmlTotal += `
+                <tr>
+                    <td class="sticky-col-hora font-monospace">${hk}</td>
+                    <td class="cell-matrix-blanco" style="border-right: 1.5px solid #000 !important;">${opHora || '/'}</td>
+                    <td class="${solidosIn !== '' ? 'cell-matrix-blanco' : 'cell-matrix-empty'} borde-fin-etapa">${solidosIn !== '' ? solidosIn : '/'}</td>
+            `;
+
+            etapasDef.forEach(e => {
+                e.paquetes.forEach((pNum, idx) => {
+                    const clsB = (idx === e.paquetes.length - 1) ? 'borde-fin-etapa' : 'borde-fin-paquete';
+                    const rm = mp[pNum];
+                    if (!rm) {
+                        htmlTotal += `
+                            <td class="cell-matrix-empty">/</td>
+                            <td class="cell-matrix-empty col-extra-memb">/</td>
+                            <td class="cell-matrix-empty col-extra-memb">/</td>
+                            <td class="cell-matrix-empty col-extra-memb">/</td>
+                            <td class="cell-matrix-empty ${clsB}">/</td>
+                            <td class="cell-matrix-empty col-semaforo-memb">/</td>
+                            <td class="cell-matrix-empty col-semaforo-memb ${clsB}">/</td>
+                        `;
+                    } else {
+                        const est = (rm.estado || 'OPERACION').toUpperCase().trim();
+                        if (['LAVADO', 'MMT', 'MMTT', 'FO', 'F.O.'].includes(est)) {
+                            let clsEst = 'cell-matrix-rojo';
+                            let txtEst = 'F.O.';
+                            if (est === 'LAVADO') { clsEst = 'cell-matrix-lavado'; txtEst = 'LAVADO'; }
+                            else if (est === 'MMT' || est === 'MMTT') { clsEst = 'cell-matrix-amarillo'; txtEst = 'MMTT'; }
+                            htmlTotal += `<td colspan="${modoColsModalSabana}" class="${clsEst} ${clsB}">${txtEst}</td>`;
+                        } else {
+                            const vPin = (rm.presion_entrada !== null && rm.presion_entrada !== '') ? Math.round(parseFloat(rm.presion_entrada)).toString() : '/';
+                            const vPout = (rm.presion_salida !== null && rm.presion_salida !== '') ? parseFloat(rm.presion_salida).toFixed(1) : '/';
+                            const vDp = (rm.delta_presion !== null && rm.delta_presion !== '') ? parseFloat(rm.delta_presion).toFixed(1) : '/';
+                            const vBin = (rm.brix_entrada !== null && rm.brix_entrada !== '') ? parseFloat(rm.brix_entrada).toFixed(1) : '/';
+                            const vBout = (rm.brix_salida !== null && rm.brix_salida !== '') ? parseFloat(rm.brix_salida).toFixed(1) : '/';
+
+                            let vPerm = '/';
+                            let clsPerm = 'cell-matrix-empty';
+                            if (rm.brix_permeado !== null && rm.brix_permeado !== '') {
+                                const bp = parseFloat(rm.brix_permeado);
+                                vPerm = bp.toFixed(2);
+                                if (bp < 0.1) clsPerm = 'cell-matrix-verde';
+                                else if (bp <= 0.5) clsPerm = 'cell-matrix-amarillo';
+                                else clsPerm = 'cell-matrix-rojo';
+                            }
+
+                            let vTemp = '/';
+                            let clsTemp = 'cell-matrix-empty';
+                            if (rm.temperatura !== undefined && rm.temperatura !== null && rm.temperatura !== '') {
+                                const tv = parseFloat(rm.temperatura);
+                                vTemp = tv.toFixed(1);
+                                if (tv >= 45 && tv <= 55) clsTemp = 'cell-matrix-verde';
+                                else if ((tv >= 40 && tv < 45) || (tv > 55 && tv <= 60)) clsTemp = 'cell-matrix-amarillo';
+                                else clsTemp = 'cell-matrix-rojo';
+                            }
+
+                            htmlTotal += `
+                                <td class="${vPin !== '/' ? 'cell-matrix-blanco' : 'cell-matrix-empty'}">${vPin}</td>
+                                <td class="col-extra-memb ${vPout !== '/' ? 'cell-matrix-blanco' : 'cell-matrix-empty'}">${vPout}</td>
+                                <td class="col-extra-memb ${vDp !== '/' ? 'cell-matrix-blanco' : 'cell-matrix-empty'}">${vDp}</td>
+                                <td class="col-extra-memb ${vBin !== '/' ? 'cell-matrix-blanco' : 'cell-matrix-empty'}">${vBin}</td>
+                                <td class="${vBout !== '/' ? 'cell-matrix-blanco' : 'cell-matrix-empty'} ${clsB}">${vBout}</td>
+                                <td class="col-semaforo-memb ${clsPerm}">${vPerm}</td>
+                                <td class="col-semaforo-memb ${clsTemp} ${clsB}">${vTemp}</td>
+                            `;
+                        }
+                    }
+                });
+            });
+
+            const obsTxt = obsArr.length > 0 ? obsArr.join(' | ') : '/';
+            htmlTotal += `
+                    <td class="${solidosOutFin !== '' ? 'cell-matrix-blanco' : 'cell-matrix-empty'} borde-fin-etapa">${solidosOutFin !== '' ? solidosOutFin : '/'}</td>
+                    <td class="cell-matrix-blanco text-truncate" style="max-width: 140px;" title="${obsTxt.replace(/"/g, '&quot;')}">${obsTxt}</td>
+                </tr>
+            `;
+        });
+
+        htmlTotal += `
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    });
+
+    cont.innerHTML = htmlTotal;
 }
 
 function renderizarTablaModal(registros) {
@@ -1192,7 +1969,25 @@ function renderizarTablaModal(registros) {
         const pOut = (r.presion_salida !== null && r.presion_salida !== '') ? parseFloat(r.presion_salida).toFixed(2) + ' bar' : '-';
         const bIn = (r.brix_entrada !== null && r.brix_entrada !== '') ? parseFloat(r.brix_entrada).toFixed(1) + ' °Bx' : '-';
         const bOut = (r.brix_salida !== null && r.brix_salida !== '') ? parseFloat(r.brix_salida).toFixed(1) + ' °Bx' : '-';
-        const bPerm = (r.brix_permeado !== null && r.brix_permeado !== '') ? parseFloat(r.brix_permeado).toFixed(1) + ' °Bx' : '-';
+
+        let bPermHtml = '-';
+        if (r.brix_permeado !== null && r.brix_permeado !== '') {
+            const bpVal = parseFloat(r.brix_permeado);
+            let bpCls = 'bg-success text-white';
+            if (bpVal > 0.5) bpCls = 'bg-danger text-white';
+            else if (bpVal >= 0.1) bpCls = 'bg-warning text-dark';
+            bPermHtml = `<span class="badge ${bpCls} px-2 py-1 font-monospace fw-bold">${bpVal.toFixed(2)} °Bx</span>`;
+        }
+
+        let tempHtml = '-';
+        if (r.temperatura !== undefined && r.temperatura !== null && r.temperatura !== '') {
+            const tVal = parseFloat(r.temperatura);
+            let tCls = 'bg-success text-white';
+            if (tVal < 40 || tVal > 60) tCls = 'bg-danger text-white';
+            else if ((tVal >= 40 && tVal < 45) || (tVal > 55 && tVal <= 60)) tCls = 'bg-warning text-dark';
+            tempHtml = `<span class="badge ${tCls} px-2 py-1 font-monospace fw-bold">${tVal.toFixed(1)} °C</span>`;
+        }
+
         const horaExacta = r.fecha_registro ? r.fecha_registro.split(' ')[1] : r.hora;
 
         html += `
@@ -1207,7 +2002,8 @@ function renderizarTablaModal(registros) {
             <td>${deltaHtml}</td>
             <td>${bIn}</td>
             <td>${bOut}</td>
-            <td>${bPerm}</td>
+            <td>${bPermHtml}</td>
+            <td>${tempHtml}</td>
             <td class="text-start small text-muted text-truncate" style="max-width: 180px;" title="${r.observaciones || ''}">${r.observaciones || '-'}</td>
         </tr>`;
     });
@@ -1234,15 +2030,16 @@ function filtrarTablaModalRegistros() {
     if (conteo) conteo.textContent = `${filtrados.length} de ${registrosDiaCache.length} registros`;
 }
 
-// Cargar lecturas existentes al inicializar la página
+// Cargar lecturas existentes al inicializar la página y vigilar cambio de hora automático
 document.addEventListener('DOMContentLoaded', function() {
     consultarLecturasPrevias();
+    setInterval(verificarHoraAutomatica, 15000);
 });
 </script>
 
-<!-- MODAL DE REGISTROS DEL DÍA -->
+<!-- MODAL DE REGISTROS DEL DÍA (BITÁCORA DE OPERACIÓN DE MEMBRANAS TIPO HOJA FÍSICA) -->
 <div class="modal fade" id="modalRegistrosDia" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 96vw; width: 96vw;">
+    <div class="modal-dialog modal-dialog-centered modal-xl" style="max-width: 98vw; width: 98vw;">
         <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
             <div class="modal-header bg-dark text-white py-3 px-4">
                 <div class="d-flex align-items-center gap-3">
@@ -1250,68 +2047,113 @@ document.addEventListener('DOMContentLoaded', function() {
                         <i class="bi bi-table fs-5"></i>
                     </div>
                     <div>
-                        <h5 class="modal-title fw-bold m-0" id="tituloModalRegistrosDia">Registros de Membranas del Día</h5>
-                        <small class="text-white-50">Consulta detallada de todas las lecturas capturadas por hora y etapa</small>
+                        <h5 class="modal-title fw-bold m-0" id="tituloModalRegistrosDia">Bitácora de Operación de Membranas</h5>
+                        <small class="text-white-50">Formato de Hoja Física con parámetros en Pendiente y valores en fondo blanco y letra negra</small>
                     </div>
                 </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4 bg-light">
-                <!-- Barra de Filtros del Modal -->
-                <div class="row g-2 mb-3 align-items-center">
-                    <div class="col-md-5">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                            <input type="text" id="buscadorModalRegistros" class="form-control border-start-0" placeholder="Buscar por paquete, hora, operador, estado..." onkeyup="filtrarTablaModalRegistros()">
+            <div class="modal-body p-3 bg-light">
+                <!-- Barra Superior de Modo de Vista y Columnas -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 bg-white p-2 rounded-3 border shadow-sm">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" id="btnModalVistaSabana" class="btn btn-dark btn-sm fw-bold active" onclick="cambiarVistaInternaModalDia('sabana')">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Bitácora Hoja Física (Sábana)
+                            </button>
+                            <button type="button" id="btnModalVistaLista" class="btn btn-outline-dark btn-sm fw-bold" onclick="cambiarVistaInternaModalDia('lista')">
+                                <i class="bi bi-list-ul me-1"></i> Lista Detallada
+                            </button>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <select id="filtroEtapaModalRegistros" class="form-select form-select-sm fw-bold" onchange="filtrarTablaModalRegistros()">
-                            <option value="">Todas las Etapas</option>
-                            <option value="1">Etapa 1 (Paq 1, 2, 3, 4, 9)</option>
-                            <option value="2">Etapa 2 (Paq 5, 6, 7, 8)</option>
-                            <option value="3">Etapa 3 (Paq 10, 11)</option>
-                            <option value="4">Etapa 4 (Paq 12, 13)</option>
+
+                        <div class="btn-group btn-group-sm" id="grpColsModalSabana" role="group">
+                            <button type="button" id="btnModalCols2" class="btn btn-primary btn-sm fw-bold active" onclick="cambiarColsModalSabana(2)">
+                                Hoja Física (Presión + Sólidos)
+                            </button>
+                            <button type="button" id="btnModalCols4" class="btn btn-outline-primary btn-sm fw-bold" onclick="cambiarColsModalSabana(4)">
+                                + Permeado y Temp (4 Cols)
+                            </button>
+                            <button type="button" id="btnModalCols7" class="btn btn-outline-primary btn-sm fw-bold" onclick="cambiarColsModalSabana(7)">
+                                Expandida (7 Cols)
+                            </button>
+                        </div>
+
+                        <select class="form-select form-select-sm fw-bold" style="width: auto;" onchange="cambiarTurnoModalSabana(this.value)">
+                            <option value="ambos">Ambos Turnos (Día y Noche)</option>
+                            <option value="matutino">Solo Turno Día (07:00 - 18:00)</option>
+                            <option value="nocturno">Solo Turno Noche (19:00 - 06:00)</option>
                         </select>
                     </div>
-                    <div class="col-md-4 text-end">
+
+                    <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-primary rounded-pill px-3 py-2 small" id="conteoRegistrosModal">Cargando...</span>
                     </div>
                 </div>
 
-                <!-- Tabla de Resultados -->
-                <div class="table-responsive bg-white rounded-3 shadow-sm border" style="max-height: 520px;">
-                    <table class="table table-hover table-sm align-middle text-center m-0" id="tablaModalRegistros">
-                        <thead class="table-dark sticky-top small">
-                            <tr>
-                                <th>Hora Exacta</th>
-                                <th>Nómina</th>
-                                <th>Etapa</th>
-                                <th>Paquete</th>
-                                <th>Estado</th>
-                                <th>P. Entrada</th>
-                                <th>P. Salida</th>
-                                <th>Delta de Presión</th>
-                                <th>Brix Entrada</th>
-                                <th>Brix Salida</th>
-                                <th>Brix Permeado</th>
-                                <th>Observaciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tbodyModalRegistros" style="font-size: 0.85rem;">
-                            <tr>
-                                <td colspan="12" class="py-4 text-center text-muted">
-                                    <div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando registros del día...
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- VISTA 1: BITÁCORA SÁBANA (HOJA FÍSICA) POR DEFECTO -->
+                <div id="wrapperSabanaModalDia" style="max-height: 74vh; overflow-y: auto;">
+                    <div id="contenedorSabanaModalDia"></div>
+                </div>
+
+                <!-- VISTA 2: LISTA DETALLADA SECUNDARIA -->
+                <div id="wrapperListaModalDia" class="d-none">
+                    <div class="row g-2 mb-3 align-items-center">
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" id="buscadorModalRegistros" class="form-control border-start-0" placeholder="Buscar por paquete, hora, operador, estado..." onkeyup="filtrarTablaModalRegistros()">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select id="filtroEtapaModalRegistros" class="form-select form-select-sm fw-bold" onchange="filtrarTablaModalRegistros()">
+                                <option value="">Todas las Etapas</option>
+                                <option value="1">Etapa 1 (Paq 1, 2, 3, 4, 9)</option>
+                                <option value="2">Etapa 2 (Paq 5, 6, 7, 8)</option>
+                                <option value="3">Etapa 3 (Paq 10, 11)</option>
+                                <option value="4">Etapa 4 (Paq 12, 13)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive bg-white rounded-3 shadow-sm border" style="max-height: 520px;">
+                        <table class="table table-hover table-sm align-middle text-center m-0" id="tablaModalRegistros">
+                            <thead class="table-dark sticky-top small">
+                                <tr>
+                                    <th>Hora Exacta</th>
+                                    <th>Nómina</th>
+                                    <th>Etapa</th>
+                                    <th>Paquete</th>
+                                    <th>Estado</th>
+                                    <th>P. Entrada</th>
+                                    <th>P. Salida</th>
+                                    <th>Delta de Presión</th>
+                                    <th>Brix Entrada</th>
+                                    <th>Brix Salida</th>
+                                    <th>Brix Permeado</th>
+                                    <th>Temperatura</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbodyModalRegistros" style="font-size: 0.85rem;">
+                                <tr>
+                                    <td colspan="13" class="py-4 text-center text-muted">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2"></div> Cargando registros del día...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer bg-white border-top py-2 px-4 justify-content-between">
-                <a href="reporte_general.php?fecha=<?= date('Y-m-d') ?>" class="btn btn-outline-primary btn-sm fw-bold rounded-pill px-3">
-                    <i class="bi bi-grid-3x3-gap-fill me-1"></i> Ir a Matriz en Reporte General
-                </a>
+                <div class="d-flex gap-2">
+                    <a href="historial.php?id=100" class="btn btn-dark btn-sm fw-bold rounded-pill px-3">
+                        <i class="bi bi-clock-history me-1"></i> Abrir Historial Completo / Imprimir
+                    </a>
+                    <a href="reporte_general.php?fecha=<?= date('Y-m-d') ?>" class="btn btn-outline-primary btn-sm fw-bold rounded-pill px-3">
+                        <i class="bi bi-grid-3x3-gap-fill me-1"></i> Ir a Reporte General
+                    </a>
+                </div>
                 <button type="button" class="btn btn-secondary btn-sm fw-bold rounded-pill px-4" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>

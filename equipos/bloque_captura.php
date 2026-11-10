@@ -1,14 +1,15 @@
 <?php
-// progel_coree/equipos/bloque_captura.php
+// progel_core/equipos/bloque_captura.php
 // ROUTER INTELIGENTE DE PANTALLAS
 
 if (in_array($equipo_id, [81, 82])) {
     // ❄️ Redirige a Chillers Votator (Con Doble Delta Maestro/Esclavo)
     include __DIR__ . '/bloque_chillers.php';
 
-} elseif (in_array($equipo_id, [84, 85, 86, 87, 88, 89])) {
-    // 🔄 Redirige a Votators del 1 al 6 (Con Delta Simple Automático)
-    include __DIR__ . '/bloque_votators_todos.php';
+} elseif (in_array($equipo_id, [8, 83, 84, 85, 86, 87, 88, 89])) {
+    // 🔄 Registro antiguo de Votators obsoleto -> redirige siempre a Sis_Extracción
+    header("Location: http://192.168.1.105/sis_extraccion/index.php?view=votators");
+    exit();
 
 } elseif (in_array($equipo_id, [91, 92])) {
     // ❄️ Chillers Normales

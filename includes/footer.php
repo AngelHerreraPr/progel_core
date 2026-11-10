@@ -77,7 +77,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     
-    // Cierre automático de sesión tras 5 minutos (300,000 ms) de inactividad
+    // Cierre automático de sesión tras 5 minutos DESACTIVADO temporalmente a petición
+    /*
     const TIEMPO_LIMITE_INACTIVIDAD_MS = 5 * 60 * 1000;
     let temporizadorInactividad;
 
@@ -90,11 +91,12 @@ document.addEventListener('DOMContentLoaded', function() {
         temporizadorInactividad = setTimeout(cerrarSesionPorInactividad, TIEMPO_LIMITE_INACTIVIDAD_MS);
     }
 
-    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'click'].forEach(evento => {
+    ['mousemove', 'mousedown', 'keydown', 'touchstart', 'touchend', 'touchmove', 'scroll', 'click'].forEach(evento => {
         document.addEventListener(evento, reiniciarTemporizadorInactividad, { passive: true });
     });
 
     reiniciarTemporizadorInactividad();
+    */
 });
 </script>
 

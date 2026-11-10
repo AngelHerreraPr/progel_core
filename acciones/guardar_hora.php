@@ -12,15 +12,14 @@ date_default_timezone_set('America/Mazatlan');
 include __DIR__ . '/../config/db.php'; 
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $fecha = $_POST['fecha'];
-    $hora = $_POST['hora'];
-    $hora_int = intval(substr($hora, 0, 2));
+    // Hora y Fecha 100% automáticas del servidor (bloqueadas contra cambios manuales)
+    $hora_actual_num = (int)date('G');
+    $hora = str_pad($hora_actual_num, 2, '0', STR_PAD_LEFT) . ':00';
+    $hora_int = $hora_actual_num;
+    $fecha = $_POST['fecha'] ?? date('Y-m-d');
     $turno_post = $_POST['turno'] ?? 'diurno'; 
 
-    $fecha_real_captura = $fecha;
-    if ($turno_post == 'nocturno' && $hora_int >= 0 && $hora_int <= 6) {
-        $fecha_real_captura = date('Y-m-d', strtotime($fecha . ' +1 day'));
-    }
+    $fecha_real_captura = date('Y-m-d');
 
     $hora_db = $hora . ":00";
 

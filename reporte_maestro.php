@@ -185,10 +185,10 @@ include 'includes/header.php';
             <div class="panel-header d-flex flex-wrap justify-content-between align-items-center gap-3 border-bottom">
                 <div>
                     <h5 class="fw-bold text-dark m-0"><i class="bi bi-ui-checks-grid text-primary me-2"></i>Captura de Parámetros</h5>
-                    <small class="text-muted">Selecciona la hora para cargar o registrar datos.</small>
+                    <small class="text-muted">Registro bloqueado automáticamente a la hora actual del sistema.</small>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
-                    <!-- ACCIONES MAESTRAS RÃPIDAS (F.O. / LAVADO / LIMPIAR) -->
+                    <!-- ACCIONES MAESTRAS RÁPIDAS (F.O. / LAVADO / LIMPIAR) -->
                     <div class="btn-group shadow-sm" role="group" aria-label="Acciones rápidas globales">
                         <button type="button" class="btn btn-outline-danger btn-sm fw-bold btn-rapido-accion d-flex align-items-center gap-1" onclick="marcarTodo('FO')" title="Marcar toda la maquinaria en Fuera de Operación">
                             <i class="bi bi-x-circle-fill text-danger"></i> <span>F.O.</span>
@@ -201,18 +201,17 @@ include 'includes/header.php';
                         </button>
                     </div>
 
-                    <select name="hora" id="cap_hora" class="form-select form-select-lg fw-bold border-primary text-primary bg-primary bg-opacity-10 shadow-sm" style="min-width: 150px;" onchange="gestionarEstadoFormulario(this.value)" required>
-                        <option value="">-- Hora --</option>
-                        <?php foreach ($todas_las_horas as $h): ?>
-                            <?php
-                                $tiene_datos = isset($manual_data[$h]);
-                                $selected = ($h == $hora_cerrada_actual && !$tiene_datos) ? 'selected' : '';
-                            ?>
-                            <option value="<?= $h ?>" <?= $selected ?> data-guardado="<?= $tiene_datos ? 'true' : 'false' ?>">
-                                <?= $h ?> <?= $tiene_datos ? '✓ (Guardado)' : '' ?>
+                    <div class="input-group shadow-sm" style="width: auto;">
+                        <span class="input-group-text bg-dark text-white border-dark fw-bold">
+                            <i class="bi bi-lock-fill me-1 text-warning"></i> Hora Actual
+                        </span>
+                        <select name="hora" id="cap_hora" class="form-select fw-bold border-dark text-dark bg-light" style="min-width: 165px; pointer-events: none; cursor: not-allowed;" tabindex="-1" aria-readonly="true" required>
+                            <?php $tiene_datos_actual = isset($manual_data[$hora_cerrada_actual]); ?>
+                            <option value="<?= $hora_cerrada_actual ?>" selected data-guardado="<?= $tiene_datos_actual ? 'true' : 'false' ?>">
+                                <?= $hora_cerrada_actual ?> hrs <?= $tiene_datos_actual ? '✓ (Guardado)' : '(Automática)' ?>
                             </option>
-                        <?php endforeach; ?>
-                    </select>
+                        </select>
+                    </div>
                 </div>
             </div>
             
@@ -425,7 +424,7 @@ include 'includes/header.php';
         </form>
     </div>
 
-    <!-- SÃBANA MAESTRA LIMPIA -->
+    <!-- SÁBANA MAESTRA LIMPIA -->
     <?php
     function renderTablaSabana($horas, $titulo, $icono, $badge, $manual_data, $conn_procesos, $conn_aveva, $fecha_seleccionada, $calidad_humedad_data = []) {
     ?>
@@ -658,7 +657,7 @@ include 'includes/header.php';
 
 <script>
     // =======================================================
-    // 1. CÃLCULO DE PRODUCCIÓN TEÓRICA
+    // 1. CÁLCULO DE PRODUCCIÓN TEÓRICA
     // =======================================================
     function calcularTeoricos() {
         const flujoTotalInput = document.getElementById('flujo_votators_total');
@@ -754,7 +753,7 @@ include 'includes/header.php';
     }
 
     // =======================================================
-    // CÃLCULO DE EFICIENCIA POR REGLA DE TRES
+    // CÁLCULO DE EFICIENCIA POR REGLA DE TRES
     // =======================================================
     function calcularEficiencia() {
         const kgRealesInput = document.getElementById('cap_kg_reales');
@@ -1359,31 +1358,8 @@ include 'includes/header.php';
 </script>
 
 <script>
-    // =======================================================
-    // REFRESCO INTELIGENTE CADA 5 MINUTOS (300,000 ms)
-    // =======================================================
-    let tiempoRefresco;                 
-
-    function iniciarTemporizador() {
-        // Limpiamos el temporizador anterior
-        clearTimeout(tiempoRefresco);
-        
-        // Configuramos el nuevo temporizador a 5 minutos (300,000 ms)
-        tiempoRefresco = setTimeout(function() {
-            // Recarga la página conservando los parámetros de la URL (fecha y turno)
-            window.location.reload();
-        }, 300000); 
-    }
-
-    // Iniciamos el contador en cuanto carga la página (o después de un guardado)
-    iniciarTemporizador();
-
-    // MAGIA: Si el operador está usando la página, reiniciamos los 5 minutos 
-    // para evitar que se le recargue la página mientras captura datos.
-    document.addEventListener('mousemove', iniciarTemporizador);
-    document.addEventListener('keypress', iniciarTemporizador);
-    document.addEventListener('click', iniciarTemporizador);
-    document.addEventListener('scroll', iniciarTemporizador);
+    // La suspensión automática por inactividad (5 minutos / 300,000 ms) 
+    // se gestiona de forma centralizada desde includes/footer.php
 </script>
 
 <!-- Modal para Exportar Excel -->
